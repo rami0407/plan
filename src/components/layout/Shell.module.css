@@ -1,0 +1,22 @@
+.shell {
+    min-height: 100vh;
+    background-color: var(--bg-color);
+}
+
+.main {
+    margin-right: 280px;
+    /* RTL sidebar width */
+    padding: 2rem;
+    max-width: 1400px;
+    /* margin-left: auto; */
+    /* Centering? */
+}
+
+/* Add responsive query later */
+@media (max-width: 1024px) {
+
+    .main,
+    .header {
+        margin-right: 0;
+    }
+}

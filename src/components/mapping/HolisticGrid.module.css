@@ -1,0 +1,101 @@
+.container {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    margin-top: 1.5rem;
+    border: 3px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    background: white;
+    box-shadow: var(--shadow-lg);
+    direction: rtl;
+    /* Ensure scrollbar is always usable */
+    padding-bottom: 5px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    /* Ensure table grows to fit content */
+    min-width: max-content;
+}
+
+.table thead {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.table th {
+    padding: 1rem 1.25rem;
+    text-align: right;
+    font-weight: 700;
+    color: white;
+    white-space: nowrap;
+    font-size: 0.95rem;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.table td {
+    padding: 0.875rem 1.25rem;
+    text-align: right;
+    border-bottom: 1px solid rgba(13, 148, 136, 0.1);
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.table tbody tr {
+    transition: all 0.2s ease;
+}
+
+.table tbody tr:hover {
+    background: linear-gradient(90deg, rgba(13, 148, 136, 0.05) 0%, rgba(139, 92, 246, 0.03) 100%);
+}
+
+.table tbody tr:nth-child(even) {
+    background: rgba(240, 253, 250, 0.5);
+}
+
+.table tbody tr:nth-child(even):hover {
+    background: linear-gradient(90deg, rgba(13, 148, 136, 0.08) 0%, rgba(139, 92, 246, 0.05) 100%);
+}
+
+.input {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    border: 2px solid transparent;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.5);
+    font-family: inherit;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.input:focus {
+    border-color: var(--primary);
+    background: white;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+    transform: scale(1.02);
+}
+
+.input:hover {
+    background: white;
+    border-color: var(--primary-light);
+}
+
+.statusGood {
+    color: var(--success);
+    font-weight: 700;
+}
+
+.statusFair {
+    color: var(--warning);
+    font-weight: 700;
+}
+
+.statusPoor {
+    color: var(--danger);
+    font-weight: 700;
+}

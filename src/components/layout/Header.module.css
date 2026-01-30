@@ -1,0 +1,23 @@
+.header {
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    margin-right: 280px;
+    /* Offset for Sidebar (RTL) */
+    background: transparent;
+}
+
+.title h2 {
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.actions {
+    display: flex;
+    gap: 1rem;
+}
+
+/* Add responsive query later */

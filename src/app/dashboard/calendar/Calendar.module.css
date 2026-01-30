@@ -1,0 +1,143 @@
+.calendarContainer {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: white;
+    border-radius: 0.5rem;
+    /* Less rounded */
+    border: 1px solid #dadce0;
+    /* Google border color */
+    font-family: 'Roboto', sans-serif;
+    /* Assuming font availability or fallback */
+}
+
+.header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    border-bottom: 1px solid #dadce0;
+    background-color: white;
+    /* Google Header is white usually */
+}
+
+.headerDay {
+    padding: 0.5rem;
+    text-align: center;
+    font-weight: 500;
+    font-size: 0.75rem;
+    /* Smaller, uppercase usually */
+    color: #70757a;
+    border-left: 1px solid #dadce0;
+    text-transform: uppercase;
+}
+
+.headerDay:last-child {
+    border-left: none;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+    /* Fixed 6 rows for consistency */
+    flex: 1;
+}
+
+.dayCell {
+    border-bottom: 1px solid #dadce0;
+    border-left: 1px solid #dadce0;
+    background-color: white;
+    min-height: 0;
+    /* Let flex/grid handle height */
+    padding: 2px;
+    /* Very small padding */
+    display: flex;
+    flex-direction: column;
+    outline: none;
+}
+
+.dayCell:focus-within {
+    background-color: #f1f3f4;
+}
+
+.dayCell.otherMonth {
+    background-color: #f8f9fa;
+    /* Very subtle grey */
+    color: #70757a;
+}
+
+/* Day Number Positioning */
+.dayHeader {
+    display: flex;
+    justify-content: center;
+    /* Center initially, Google puts it centered usually in month view */
+    margin-bottom: 2px;
+}
+
+.dayNumber {
+    font-size: 0.75rem;
+    font-weight: 500;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: #3c4043;
+    cursor: pointer;
+}
+
+.dayNumber:hover {
+    background-color: #f1f3f4;
+}
+
+.dayNumber.today {
+    background-color: var(--primary);
+    /* Keep primary color for today */
+    color: white;
+}
+
+/* Event List */
+.eventList {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    overflow: hidden;
+    /* Hide overflow */
+}
+
+.eventItem {
+    font-size: 12px;
+    padding: 0 8px;
+    /* Compact padding */
+    border-radius: 4px;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    font-weight: 500;
+    line-height: 20px;
+    /* Standard height */
+    margin: 0 2px;
+    /* Tiny margin */
+}
+
+.eventItem:hover {
+    filter: brightness(0.95);
+}
+
+.moreEvents {
+    font-size: 11px;
+    font-weight: 600;
+    color: #3c4043;
+    cursor: pointer;
+    padding: 0 8px;
+    margin: 0 2px;
+    border-radius: 4px;
+    line-height: 20px;
+}
+
+.moreEvents:hover {
+    background-color: #f1f3f4;
+}
