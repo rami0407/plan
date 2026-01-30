@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { saveAs } from 'file-saver';
+import { Document, Packer, Paragraph, TextRun, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle, HeadingLevel, SectionType } from 'docx';
 
 export default function PersonalInterventionPage() {
     const router = useRouter();
@@ -16,20 +18,29 @@ export default function PersonalInterventionPage() {
     // List View State
     const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
     const [plansList, setPlansList] = useState<any[]>([]);
+    const [selectedYear, setSelectedYear] = useState('2026');
+    const years = Array.from({ length: 15 }, (_, i) => (2026 + i).toString());
 
     useEffect(() => {
         if (viewMode === 'list' && user) {
             fetchPlans();
         }
-    }, [viewMode, user]);
+    }, [viewMode, user, selectedYear]);
 
     const fetchPlans = async () => {
         if (!user) return;
         setLoading(true);
         try {
-            const { getPersonalInterventionPlansByCoordinator } = await import('@/lib/firestoreService');
-            const data = await getPersonalInterventionPlansByCoordinator(user.uid);
-            setPlansList(data);
+            const { getPersonalInterventionPlansByCoordinatorAndYear } = await import('@/lib/firestoreService');
+            // Attempt to get filtered data, fallback to local filter if service not updated
+            try {
+                const data = await getPersonalInterventionPlansByCoordinatorAndYear(user.uid, selectedYear);
+                setPlansList(data);
+            } catch (e) {
+                const { getPersonalInterventionPlansByCoordinator } = await import('@/lib/firestoreService');
+                const data = await getPersonalInterventionPlansByCoordinator(user.uid);
+                setPlansList(data.filter((p: any) => p.selectedYear === selectedYear));
+            }
         } catch (error) {
             console.error("Error fetching plans:", error);
         } finally {
@@ -51,6 +62,7 @@ export default function PersonalInterventionPage() {
         setInterventionPlan(plan.interventionPlan);
         setSelectedGrade(plan.grade || '');
         setSelectedSection(plan.section || '');
+        if (plan.selectedYear) setSelectedYear(plan.selectedYear);
         setViewMode('form');
     };
 
@@ -196,7 +208,8 @@ export default function PersonalInterventionPage() {
                 interventionPlan,
                 grade: selectedGrade,
                 section: selectedSection,
-                updatedAt: new Date()
+                updatedAt: new Date(),
+                selectedYear: selectedYear
             };
 
             if (planId) {
@@ -312,6 +325,54 @@ export default function PersonalInterventionPage() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    const handleDownloadWord = async (plan: any) => {
+        const doc = new Document({
+            sections: [{
+                properties: {
+                    type: SectionType.CONTINUOUS,
+                },
+                children: [
+                    new Paragraph({
+                        text: "תכנית התערבות אישית / خطة تدخل شخصية",
+                        heading: HeadingLevel.TITLE,
+                        alignment: AlignmentType.CENTER,
+                    }),
+                    new Paragraph({
+                        text: `سنة / שנה"ל: ${plan.selectedYear || '---'}`,
+                        alignment: AlignmentType.CENTER,
+                    }),
+                    new Paragraph({ text: "" }),
+                    new Paragraph({
+                        children: [
+                            new TextRun({
+                                text: `الاسم / שם: ${plan.studentDetails?.firstName} ${plan.studentDetails?.lastName}`,
+                                bold: true,
+                            }),
+                        ],
+                    }),
+                    new Paragraph({
+                        text: `رقم الهوية / ת"ז: ${plan.studentDetails?.id}`,
+                    }),
+                    new Paragraph({
+                        text: `الصف / כיתה: ${plan.grade} ${plan.section ? `(${plan.section})` : ''}`,
+                    }),
+                    new Paragraph({ text: "" }),
+                    new Paragraph({
+                        text: "تفاصيل الخطة / תוכנית מפורטת:",
+                        heading: HeadingLevel.HEADING_2,
+                    }),
+                    new Paragraph({
+                        text: `المسؤول / גורם אחראי: ${plan.studentDetails?.responsibleStaff || '---'}`,
+                    }),
+                ],
+            }],
+        });
+
+        Packer.toBlob(doc).then((blob) => {
+            saveAs(blob, `Intervention_Plan_${plan.studentDetails?.firstName}_${plan.studentDetails?.lastName}.docx`);
+        });
+    };
+
     const handleDeletePlan = async (id: string) => {
         if (!confirm('האם אתה בטוח שברצונך למחוק תכנית זו? / هل أنت متأكد أنك تريد حذف هذه الخطة؟')) return;
         try {
@@ -356,92 +417,79 @@ export default function PersonalInterventionPage() {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
-                        {loading ? (
-                            <div className="p-12 text-center text-gray-500">... טוען נתונים / جاري التحميل</div>
-                        ) : plansList.length === 0 ? (
-                            <div className="p-12 text-center">
-                                <div className="mb-4 text-6xl">📭</div>
-                                <h3 className="text-xl font-bold text-gray-700 mb-2">לא נמצאו תכניות / لا توجد خطط</h3>
-                                <p className="text-gray-500 mb-6">לחץ על כפתור ההוספה כדי ליצור תכנית התערבות חדשה / اضغط على زر الإضافة لإنشاء خطة تدخل جديدة</p>
-                                <button onClick={handleNewPlan} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold shadow-md">
-                                    צור תכנית ראשונה / إنشاء الخطة الأولى
-                                </button>
+                    <div className="p-6 bg-gray-50 border-b border-gray-200">
+                        <div className="flex items-center gap-4">
+                            <label className="font-bold text-gray-700">בחר שנה / اختر السنة:</label>
+                            <div className="flex flex-wrap gap-2">
+                                {years.map(y => (
+                                    <button
+                                        key={y}
+                                        onClick={() => setSelectedYear(y)}
+                                        className={`px-4 py-3 rounded-xl font-bold transition-all shadow-sm ${selectedYear === y ? 'bg-blue-600 text-white shadow-blue-200 scale-110' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}
+                                    >
+                                        📁 {y}
+                                    </button>
+                                ))}
                             </div>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-right">
-                                    <thead className="bg-gray-50 border-b border-gray-200 text-gray-600">
-                                        <tr>
-                                            <th className="p-4 font-bold">שם התלמיד / الاسم</th>
-                                            <th className="p-4 font-bold">ת"ז / الهوية</th>
-                                            <th className="p-4 font-bold">כיתה / الصف</th>
-                                            <th className="p-4 font-bold">עודכן לאחרונה / آخر تحديث</th>
-                                            <th className="p-4 font-bold text-center">פעולות / إجراءات</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {plansList.map((plan) => (
-                                            <tr key={plan.id} className="hover:bg-blue-50/50 transition-colors group">
-                                                <td className="p-4 font-bold text-gray-800">
-                                                    {plan.studentDetails?.firstName} {plan.studentDetails?.lastName}
-                                                </td>
-                                                <td className="p-4 text-gray-600 font-mono text-sm">
-                                                    {plan.studentDetails?.id}
-                                                </td>
-                                                <td className="p-4">
-                                                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold">
-                                                        {plan.grade} {plan.section ? `(${plan.section})` : ''}
-                                                    </span>
-                                                </td>
-                                                <td className="p-4 text-gray-500 text-sm">
-                                                    {plan.updatedAt?.seconds ? new Date(plan.updatedAt.seconds * 1000).toLocaleDateString('he-IL') : '-'}
-                                                </td>
-                                                <td className="p-4">
-                                                    <div className="flex items-center justify-center gap-2 opacity-100">
-                                                        <button onClick={() => handleEditPlan(plan)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg tooltip-btn" title="ערוך / تعديل">
-                                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                                                        </button>
-                                                        <button onClick={() => handleDuplicatePlan(plan)} className="p-2 text-green-600 hover:bg-green-100 rounded-lg" title="שכפל / نسخ">
-                                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                                                        </button>
-                                                        <button
-                                                            onClick={async () => {
-                                                                if (!confirm('האם לשלוח למנהל? / هل ترغب في الإرسال للمدير؟')) return;
-                                                                // Since we are in list view, we need to handle send from here or just open edit.
-                                                                // Simpler to just open edit for now or duplicate the send logic.
-                                                                // Let's reuse the handleEdit then handleSend logic inside form, or unimplemented for now in list to keep simple.
-                                                                handleEditPlan(plan);
-                                                                setTimeout(() => alert('אנא לחץ על "שלח למנהל" מתוך הטופס / الرجاء الضغط على "إرسال للمدير" من داخل النموذج'), 500);
-                                                            }}
-                                                            className="p-2 text-amber-600 hover:bg-amber-100 rounded-lg"
-                                                            title="שלח למנהל / إرسال"
-                                                        >
-                                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                                                        </button>
-                                                        <button onClick={() => handleDeletePlan(plan.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-lg" title="מחק / حذف">
-                                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
+                        </div>
                     </div>
 
-                    {/* Bottom Add Button */}
-                    {plansList.length > 0 && (
-                        <div className="mt-8 flex justify-center">
-                            <button onClick={handleNewPlan} className="px-8 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold shadow-lg flex items-center gap-2 transition-transform hover:-translate-y-1">
-                                <span className="text-xl">+</span>
-                                הוסף תכנית חדשה / إضافة خطة
+                    {loading ? (
+                        <div className="p-12 text-center text-gray-500">... טוען נתונים / جاري التحميل</div>
+                    ) : plansList.length === 0 ? (
+                        <div className="p-12 text-center">
+                            <div className="mb-4 text-6xl">📭</div>
+                            <h3 className="text-xl font-bold text-gray-700 mb-2">לא נמצאו תכניות לשנת {selectedYear} / لا توجد خطط لهذه السنة</h3>
+                            <p className="text-gray-500 mb-6">לחץ على زر الإضافة لإنشاء خطة جديدة لهذه السنة</p>
+                            <button onClick={handleNewPlan} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold shadow-md">
+                                צור תכנית ראשונה ل-{selectedYear} / إنشاء الخطة الأولى
                             </button>
+                        </div>
+                    ) : (
+                        <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {plansList.map((plan) => (
+                                <div key={plan.id} className="relative group overflow-hidden">
+                                    <button
+                                        onClick={() => handleEditPlan(plan)}
+                                        className="w-full bg-white border-2 border-gray-100 rounded-3xl p-8 text-right shadow-sm hover:shadow-2xl transition-all hover:-translate-y-2 border-r-8 border-r-blue-600 group-hover:border-blue-200"
+                                    >
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="bg-blue-50 text-blue-600 p-3 rounded-2xl">
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                            </div>
+                                            <span className="text-sm font-bold text-gray-400">ID: {plan.studentDetails?.id}</span>
+                                        </div>
+                                        <h3 className="text-2xl font-black text-gray-800 mb-2 truncate">{plan.studentDetails?.firstName} {plan.studentDetails?.lastName}</h3>
+                                        <div className="flex items-center gap-2 mb-6">
+                                            <span className="bg-blue-100/50 text-blue-700 px-3 py-1 rounded-full text-xs font-black">
+                                                {plan.grade} {plan.section ? `(${plan.section})` : ''}
+                                            </span>
+                                        </div>
+                                        <div className="flex gap-2 pt-4 border-t border-gray-100" onClick={e => e.stopPropagation()}>
+                                            <button onClick={() => handleDownloadWord(plan)} className="flex-1 py-2 bg-gray-50 text-gray-600 rounded-xl hover:bg-blue-50 hover:text-blue-600 font-bold transition-all flex items-center justify-center gap-2 text-sm shadow-sm">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                                تحميل / وורד
+                                            </button>
+                                            <button onClick={() => handleDeletePlan(plan.id)} className="w-12 h-10 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all flex items-center justify-center shadow-sm">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                            </button>
+                                        </div>
+                                    </button>
+                                </div>
+                            ))}
                         </div>
                     )}
                 </div>
+
+                {/* Bottom Add Button */}
+                {plansList.length > 0 && (
+                    <div className="mt-8 flex justify-center">
+                        <button onClick={handleNewPlan} className="px-8 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold shadow-lg flex items-center gap-2 transition-transform hover:-translate-y-1">
+                            <span className="text-xl">+</span>
+                            הוסף תכנית חדשה / إضافة خطة
+                        </button>
+                    </div>
+                )}
             </div>
         );
     }

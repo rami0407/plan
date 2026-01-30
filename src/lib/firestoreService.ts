@@ -577,6 +577,27 @@ export const addPersonalInterventionPlan = async (plan: Omit<PersonalInterventio
     }
 };
 
+export const getPersonalInterventionPlansByCoordinatorAndYear = async (coordinatorId: string, year: string): Promise<PersonalInterventionPlan[]> => {
+    try {
+        const q = query(
+            collection(db, 'personalInterventionPlans'),
+            where('coordinatorId', '==', coordinatorId),
+            where('selectedYear', '==', year),
+            orderBy('createdAt', 'desc')
+        );
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PersonalInterventionPlan));
+    } catch (error) {
+        console.error('Error getting plans by year:', error);
+        // Fallback to local filter if query fails (e.g. missing index)
+        const qAll = query(collection(db, 'personalInterventionPlans'), where('coordinatorId', '==', coordinatorId));
+        const snap = await getDocs(qAll);
+        return snap.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as PersonalInterventionPlan))
+            .filter((p: any) => p.selectedYear === year);
+    }
+};
+
 export const getPersonalInterventionPlanByStudentId = async (studentId: string): Promise<PersonalInterventionPlan | null> => {
     try {
         const q = query(
