@@ -12,6 +12,7 @@
     "docx": "^9.5.1",
     "file-saver": "^2.0.5",
     "firebase": "^11.1.0",
+    "framer-motion": "^11.11.17",
     "next": "16.1.4",
     "react": "19.2.3",
     "react-dom": "19.2.3",
