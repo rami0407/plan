@@ -10,6 +10,9 @@ export default function ClassesPage() {
     const [classes, setClasses] = useState<ClassGroup[]>([]);
     const [loading, setLoading] = useState(true);
     const [migrating, setMigrating] = useState(false);
+    const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+
+    const availableYears = Array.from({ length: 2041 - 2024 }, (_, i) => 2024 + i);
 
     useEffect(() => {
         fetchClasses();
@@ -56,20 +59,34 @@ export default function ClassesPage() {
 
     return (
         <div className="animate-fade-in">
-            <div className="mb-8 flex justify-between items-center">
+            <div className="mb-8 flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                 <div>
-                    <h1 className="mb-2">الصفوف الدراسية 📚</h1>
+                    <h1 className="mb-2 text-3xl font-black text-gray-800">الصفوف الدراسية 📚</h1>
                     <p className="text-gray-500 text-lg">اختر الصف لإدخال وتحديث البيانات الهولستية للطلاب</p>
                 </div>
-                {classes.length === 0 && (
-                    <button
-                        onClick={handleMigrate}
-                        disabled={migrating}
-                        className="btn btn-primary"
-                    >
-                        {migrating ? 'جاري النقل...' : '📥 استيراد البيانات التجريبية'}
-                    </button>
-                )}
+                <div className="flex items-center gap-4">
+                    <div className="flex flex-col items-end">
+                        <span className="text-xs font-bold text-primary mb-1">السنة الدراسية</span>
+                        <select
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                            className="bg-gray-50 border-2 border-primary/20 rounded-xl px-4 py-2 font-bold text-primary focus:border-primary outline-none transition-all cursor-pointer"
+                        >
+                            {availableYears.map(year => (
+                                <option key={year} value={year}>{year} / {year + 1}</option>
+                            ))}
+                        </select>
+                    </div>
+                    {classes.length === 0 && (
+                        <button
+                            onClick={handleMigrate}
+                            disabled={migrating}
+                            className="btn btn-primary"
+                        >
+                            {migrating ? 'جاري النقل...' : '📥 استيراد البيانات التجريبية'}
+                        </button>
+                    )}
+                </div>
             </div>
 
             {classes.length === 0 ? (
@@ -79,7 +96,7 @@ export default function ClassesPage() {
             ) : (
                 <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
                     {classes.map((cls) => (
-                        <Link href={`/dashboard/classes/view?id=${cls.id}`} key={cls.id || Math.random()} className="block group">
+                        <Link href={`/dashboard/classes/view?id=${cls.id}&year=${selectedYear}`} key={cls.id || Math.random()} className="block group">
                             <div className="glass-panel p-6 relative overflow-hidden h-full">
                                 {/* الزخرفة */}
                                 <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-[var(--primary)] to-[var(--secondary)] opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -106,7 +123,7 @@ export default function ClassesPage() {
 
                                 {/* الزر */}
                                 <div className="flex items-center text-primary text-sm font-bold gap-2 group-hover:gap-3 transition-all mt-auto pt-4 border-t border-gray-100">
-                                    <span>فتح البيانات</span>
+                                    <span>فتح بيانات {selectedYear}</span>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:-translate-x-1 transition-transform">
                                         <line x1="5" x2="19" y1="12" y2="12" />
                                         <polyline points="12 5 19 12 12 19" />

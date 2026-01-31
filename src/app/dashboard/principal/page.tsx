@@ -6,6 +6,7 @@ import { doc, getDoc, setDoc, collection, addDoc, getDocs, deleteDoc, updateDoc,
 import { initializeApp, getApp, getApps, deleteApp, FirebaseApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import Link from 'next/link';
+import AIAssistant from '@/components/AIAssistant';
 
 // Firebase Config (Must match the one in lib/firebase.ts)
 const firebaseConfig = {
@@ -35,6 +36,7 @@ export default function PrincipalDashboard() {
     // Monthly Values State for 10 Months (Sep - June)
     const [monthlyValues, setMonthlyValues] = useState<Record<string, string>>({});
     const [isSavingValues, setIsSavingValues] = useState(false);
+    const [showAI, setShowAI] = useState(false);
 
     const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
     const availableYears = Array.from({ length: 2040 - 2023 }, (_, i) => 2024 + i);
@@ -249,6 +251,12 @@ export default function PrincipalDashboard() {
                                 ))}
                             </select>
                         </div>
+                        <button
+                            onClick={() => setShowAI(true)}
+                            className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold shadow-lg hover:scale-105 transition-all flex items-center gap-2 animate-pulse"
+                        >
+                            <span>✨</span> المساعد الذكي
+                        </button>
                         <div className="text-left hidden md:block">
                             <p className="font-bold text-lg">{new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
                         </div>
@@ -580,6 +588,19 @@ export default function PrincipalDashboard() {
                         </div>
                     </Link>
                 </div>
+
+                {showAI && (
+                    <AIAssistant
+                        onClose={() => setShowAI(false)}
+                        context={{ plans, stats, monthlyValues, selectedYear }}
+                        pageTitle="مساعد المدير الذكي"
+                        suggestions={[
+                            { label: 'تحليل أداء المركزين', prompt: 'قم بتحليل نسب إنجاز المركزين واقترح من يحتاج لمتابعة أكثر.', icon: '📊' },
+                            { label: 'اقتراح قيم تربوية', prompt: 'اقترح قيم تربوية للأشهر المتبقية بناءً على أهداف المدرسة العامة.', icon: '💡' },
+                            { label: 'ملخص الحالة العامة', prompt: 'لخص الحالة العامة للمدرسة من حيث الخطط والمهام في 3 نقاط.', icon: '📝' }
+                        ]}
+                    />
+                )}
             </div>
         </div>
     );

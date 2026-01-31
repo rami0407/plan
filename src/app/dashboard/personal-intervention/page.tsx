@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveAs } from 'file-saver';
 import { Document, Packer, Paragraph, TextRun, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle, HeadingLevel, SectionType } from 'docx';
+import AIAssistant from '@/components/AIAssistant';
 
 export default function PersonalInterventionPage() {
     const router = useRouter();
@@ -449,9 +450,9 @@ export default function PersonalInterventionPage() {
                         <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {plansList.map((plan) => (
                                 <div key={plan.id} className="relative group overflow-hidden">
-                                    <button
+                                    <div
                                         onClick={() => handleEditPlan(plan)}
-                                        className="w-full bg-white border-2 border-gray-100 rounded-3xl p-8 text-right shadow-sm hover:shadow-2xl transition-all hover:-translate-y-2 border-r-8 border-r-blue-600 group-hover:border-blue-200"
+                                        className="w-full bg-white border-2 border-gray-100 rounded-3xl p-8 text-right shadow-sm hover:shadow-2xl transition-all hover:-translate-y-2 border-r-8 border-r-blue-600 group-hover:border-blue-200 cursor-pointer"
                                     >
                                         <div className="flex justify-between items-start mb-4">
                                             <div className="bg-blue-50 text-blue-600 p-3 rounded-2xl">
@@ -474,7 +475,7 @@ export default function PersonalInterventionPage() {
                                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                             </button>
                                         </div>
-                                    </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -904,14 +905,15 @@ export default function PersonalInterventionPage() {
             </div >
 
             {/* AI Assistant Panel */}
-            {
-                showAI && (
-                    <AIAssistant
-                        onClose={() => setShowAI(false)}
-                        context={{ studentDetails, interventionPlan, functionalAreas }}
-                    />
-                )
-            }
+            {showAI && (
+                <AIAssistant
+                    onClose={() => setShowAI(false)}
+                    context={{ studentDetails, disabilities, functionalAreas, interventionPlan }}
+                    suggestions={[
+                        { label: 'أهداف ذكية', prompt: 'اقترح 3 أهداف ذكية (SMART) بناءً على نقاط الضعف المذكورة.', icon: '🎯' }
+                    ]}
+                />
+            )}
 
             {/* Print Styles */}
             <style jsx global>{`
@@ -942,214 +944,3 @@ export default function PersonalInterventionPage() {
     );
 }
 
-function AIAssistant({ onClose, context }: { onClose: () => void, context: any }) {
-    const [prompt, setPrompt] = useState('');
-    const [response, setResponse] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [mode, setMode] = useState<'review' | 'feedback' | 'chat'>('review');
-    const [selectedModel, setSelectedModel] = useState<'gemini' | 'groq'>('gemini');
-
-    const handleAction = async (actionType: string) => {
-        setLoading(true);
-        setResponse('');
-
-        let customPrompt = "";
-        if (actionType === 'review') {
-            customPrompt = "قم بمراجعة هذه الخطة التربوية. هل الأهداف ملائمة للصعوبات المذكورة؟ هل هناك تناقضات؟ أعط تقييماً مهنياً ونصائح للتحسين. جاوب باللغة العربية بأسلوب مدير مدرسة محترف.";
-        } else if (actionType === 'feedback') {
-            customPrompt = "اكتب رسالة ملاحظات للمعلم الذي كتب هذه الخطة. اشكر المعلم أولاً، ثم اذكر نقطة قوة في الخطة، ثم اقترح تعديلاً واحداً أو استفساراً بأسلوب لطيف وبناء. جاوب باللغة العربية.";
-        } else if (actionType === 'summary') {
-            customPrompt = "لخص هذه الخطة في 3 نقاط رئيسية: 1. حالة الطالب والصعوبات الأساسية. 2. أهداف التدخل الرئيسية. 3. وسائل الدعم المقترحة. اجعل التلخيص موجزاً وواضحاً.";
-        } else if (actionType === 'suggest_goals') {
-            customPrompt = "بناءً على الصعوبات ونقاط الضعف المذكورة في الخطة، اقترح 3 أهداف ذكية (SMART) بديلة أو إضافية يمكن للمعلم استخدامها. اشرح لماذا هذه الأهداف مناسبة.";
-        } else {
-            customPrompt = prompt;
-        }
-
-
-        const systemInstruction = `
-        You are an intelligent pedagogical assistant for a school principal.
-        Your goal is to assist the principal in two main tasks:
-        1. Reviewing Personal Intervention Plans: Analyze the plan for coherence, alignment between goals and methods, and professional language.
-        2. Writing Feedback: Draft professional, constructive, and encouraging feedback for the teacher based on the plan's content.
-
-        CONTEXT:
-        ${JSON.stringify(context, null, 2)}
-        
-        Answer specifically in Arabic as requested by the user context.
-        Keep the tone professional, educational, and helpful.
-        `;
-
-        const fullPrompt = systemInstruction + "\n\nUser Request: " + customPrompt;
-
-        try {
-            let data: any;
-
-            if (selectedModel === 'groq') {
-                // --- GROQ CLIENT-SIDE CALL ---
-                const GROQ_API_KEY_PART1 = 'gsk_7IvLk74waYla1ekuNgkQWGdyb3FYQcB1IH5h';
-                const GROQ_API_KEY_PART2 = 'fONdCPzGshDkuT11';
-                const GROQ_API_KEY = GROQ_API_KEY_PART1 + GROQ_API_KEY_PART2;
-
-                const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${GROQ_API_KEY}`
-                    },
-                    body: JSON.stringify({
-                        messages: [
-                            { role: "system", content: systemInstruction },
-                            { role: "user", content: customPrompt }
-                        ],
-                        model: "llama3-8b-8192",
-                        temperature: 0.7
-                    })
-                });
-
-                if (!response.ok) throw new Error("Groq API Error");
-                const resJson = await response.json();
-                const text = resJson.choices?.[0]?.message?.content || "No response.";
-                setResponse(text);
-
-            } else {
-                // --- GEMINI CLIENT-SIDE CALL ---
-                const GEMINI_API_KEY_PART1 = 'AIzaSyCb_QSI0gQl5o3bR2';
-                const GEMINI_API_KEY_PART2 = 'TW-hrBDynukgjjDCE';
-                const GEMINI_API_KEY = GEMINI_API_KEY_PART1 + GEMINI_API_KEY_PART2;
-                const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [{ text: fullPrompt }]
-                        }]
-                    })
-                });
-
-                if (!response.ok) throw new Error("Gemini API Error");
-                const resJson = await response.json();
-                const text = resJson.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
-                setResponse(text);
-            }
-
-        } catch (error) {
-            console.error(error);
-            setResponse('حدث خطأ في الاتصال بالذكاء الاصطناعي. تأكد من الاتصال بالإنترنت.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <div className="fixed inset-y-0 left-0 w-96 bg-white shadow-2xl border-r border-gray-200 p-6 flex flex-col z-50 animate-slide-in-left print:hidden">
-            <div className="flex justify-between items-start mb-6">
-                <div>
-                    <h3 className="text-xl font-black text-purple-800 flex items-center gap-2 mb-1">
-                        <span>✨</span> مساعد المدير
-                    </h3>
-                    <div className="flex bg-gray-100 p-1 rounded-lg">
-                        <button
-                            onClick={() => setSelectedModel('gemini')}
-                            className={`flex-1 px-3 py-1 text-xs font-bold rounded-md transition-all ${selectedModel === 'gemini' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            Gemini 🤖
-                        </button>
-                        <button
-                            onClick={() => setSelectedModel('groq')}
-                            className={`flex-1 px-3 py-1 text-xs font-bold rounded-md transition-all ${selectedModel === 'groq' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            Groq ⚡
-                        </button>
-                    </div>
-                </div>
-                <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
-            </div>
-
-            <div className="flex gap-2 mb-4">
-                <button
-                    onClick={() => { setMode('review'); handleAction('review'); }}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors ${mode === 'review' ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
-                >
-                    🔍 فحص
-                </button>
-                <button
-                    onClick={() => { setMode('feedback'); handleAction('feedback'); }}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors ${mode === 'feedback' ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
-                >
-                    ✍️ رد
-                </button>
-                <button
-                    onClick={() => { setMode('feedback'); handleAction('summary'); }}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors bg-gray-50 text-gray-600 hover:bg-gray-100`}
-                >
-                    📝 تلخيص
-                </button>
-                <button
-                    onClick={() => { setMode('feedback'); handleAction('suggest_goals'); }}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors bg-gray-50 text-gray-600 hover:bg-gray-100`}
-                >
-                    🎯 أهداف
-                </button>
-                <button
-                    onClick={() => setMode('chat')}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors ${mode === 'chat' ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
-                >
-                    💬 محادثة
-                </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto mb-4 bg-gray-50 rounded-xl p-4 border border-gray-100 scrollbar-thin">
-                {loading ? (
-                    <div className="flex flex-col items-center justify-center h-full text-purple-600 gap-3">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-                        <p className="animate-pulse">جاري التحليل...</p>
-                    </div>
-                ) : response ? (
-                    <div className="prose prose-sm prose-purple text-right" dir="rtl">
-                        <div className="whitespace-pre-wrap">{response}</div>
-                        <button
-                            onClick={() => navigator.clipboard.writeText(response)}
-                            className="mt-4 text-xs text-gray-500 hover:text-purple-600 flex items-center gap-1"
-                        >
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                            نسخ النص
-                        </button>
-                    </div>
-                ) : (
-                    <div className="h-full flex items-center justify-center text-center text-gray-400 p-4">
-                        <p>اختر أحد الخيارات أعلاه للبدء، أو اكتب سؤالك في الأسفل.</p>
-                    </div>
-                )}
-            </div>
-
-            {
-                mode === 'chat' && (
-                    <div className="mt-auto">
-                        <div className="relative">
-                            <input
-                                type="text"
-                                value={prompt}
-                                onChange={(e) => setPrompt(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleAction('chat')}
-                                placeholder="اكتب ملاحظة أو سؤالاً..."
-                                className="w-full p-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-right"
-                            />
-                            <button
-                                onClick={() => handleAction('chat')}
-                                disabled={!prompt || loading}
-                                className="absolute left-2 top-2 p-1 text-purple-600 hover:bg-purple-50 rounded-full"
-                            >
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                            </button>
-                        </div>
-                    </div>
-                )
-            }
-        </div >
-    );
-}

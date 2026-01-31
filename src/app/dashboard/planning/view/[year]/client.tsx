@@ -6,6 +6,7 @@ import { TeachingStaffMember, IntegrationPlan, SchoolProfileRow, BookListRow, An
 import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { createNotification } from '@/lib/firestoreService';
+import AIAssistant from '@/components/AIAssistant';
 
 export default function ReviewPlanClient({ year }: { year: string }) {
     const router = useRouter();
@@ -39,6 +40,7 @@ export default function ReviewPlanClient({ year }: { year: string }) {
     // Feedback State
     const [showFeedbackModal, setShowFeedbackModal] = useState(false);
     const [feedback, setFeedback] = useState('');
+    const [showAI, setShowAI] = useState(false);
 
     useEffect(() => {
         const fetchPlan = async () => {
@@ -173,6 +175,12 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                             disabled={actionLoading}
                         >
                             {actionLoading ? 'جاري التنفيذ...' : '✅ اعتماد الخطة'}
+                        </button>
+                        <button
+                            onClick={() => setShowAI(true)}
+                            className="btn bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-bold shadow-md flex items-center gap-2 animate-pulse"
+                        >
+                            <span>✨</span> AI
                         </button>
                         <button
                             onClick={() => window.print()}
@@ -345,6 +353,19 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {showAI && (
+                <AIAssistant
+                    onClose={() => setShowAI(false)}
+                    context={{ planData, profile, teachingStaff, goals, schoolProfileTable, bookList }}
+                    pageTitle="مساعد مراجعة الخطط"
+                    suggestions={[
+                        { label: 'تقييم مهني', prompt: 'قم بتقييم هذه الخطة مهنياً. هل الأهداف طموحة وواقعية؟ هل هناك فجوات في طاقم التدريس؟', icon: '🔍' },
+                        { label: 'اقتراح ملاحظات', prompt: 'اقترح ملاحظات بناءة للمركز لتحسين هذه الخطة.', icon: '✍️' },
+                        { label: 'تحليل البروفايل', prompt: 'حلل البروفايل المدرسي واذكر أهم التحديات التي تواجه الصفوف بناءً على أعداد الطلاب والمتعثرين.', icon: '📊' }
+                    ]}
+                />
             )}
         </div>
     );

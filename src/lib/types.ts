@@ -258,3 +258,21 @@ export interface CoordinatorPlan {
   tasksCount: number;
   userId: string;
 }
+
+export type Term = '1' | '2' | '3' | '4';
+
+export interface StudentAssessment {
+  id: string; // Format: ${studentId}_${year}_${term}
+  studentId: string;
+  classId: string;
+  year: number;
+  term: Term;
+  academicStatus: 'Excellent' | 'Good' | 'Fair' | 'Poor' | '';
+  socialStatus: string;
+  emotionalStatus: string;
+  economicStatus: string;
+  absences: number;
+  notes: string;
+  grades: Record<string, number | string>;
+  updatedAt: number;
+}

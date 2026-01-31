@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getTasksForUser, toggleTaskCompletion, addTask, deleteTask, updateTask, Task } from '@/lib/firestoreService';
 import styles from './Checklist.module.css';
+import AIAssistant from '@/components/AIAssistant';
 
 export default function TasksPage() {
     const { user } = useAuth();
@@ -11,6 +12,7 @@ export default function TasksPage() {
     const [loading, setLoading] = useState(true);
     const [newTaskText, setNewTaskText] = useState('');
     const [isAdding, setIsAdding] = useState(false);
+    const [showAI, setShowAI] = useState(false);
 
     // Edit State
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -126,8 +128,28 @@ export default function TasksPage() {
             <div className={styles.notepad}>
                 <div className={styles.listWrapper}>
                     <div className={styles.listHeader}>
-                        <h1>مهامي (To-Do List)</h1>
+                        <div className="flex justify-between items-center w-full">
+                            <h1>مهامي (To-Do List)</h1>
+                            <button
+                                onClick={() => setShowAI(true)}
+                                className="p-2 bg-purple-600 text-white rounded-full shadow-lg hover:scale-110 transition-transform animate-pulse flex items-center gap-1 text-sm font-bold"
+                            >
+                                <span>✨</span> AI
+                            </button>
+                        </div>
                     </div>
+
+                    {showAI && (
+                        <AIAssistant
+                            onClose={() => setShowAI(false)}
+                            context={{ tasks }}
+                            pageTitle="مساعد إدارة المهام"
+                            suggestions={[
+                                { label: 'تحديد أولويات', prompt: 'راجع قائمة المهام وحدد أهم 3 مهام يجب إنجازها اليوم.', icon: '⚡' },
+                                { label: 'تنظيم الوقت', prompt: 'اقترح جدولاً زمنياً لتنفيذ هذه المهام خلال اليوم.', icon: '📅' }
+                            ]}
+                        />
+                    )}
 
                     <form onSubmit={handleAddTask} className={styles.addTaskContainer}>
                         <input

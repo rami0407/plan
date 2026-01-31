@@ -4,11 +4,13 @@ import { useState, useEffect } from 'react';
 import { generateAcademicYearMonths, type MonthPlan } from '@/lib/academicCalendar';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, doc, getDoc, setDoc } from 'firebase/firestore';
+import AIAssistant from '@/components/AIAssistant';
 
 export default function AnnualPlanningClient() {
     const [months, setMonths] = useState<MonthPlan[]>([]);
     const [sending, setSending] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [showAI, setShowAI] = useState(false);
     const planId = '2025'; // Fixed ID for the 2025-2026 plan for now
 
     useEffect(() => {
@@ -107,6 +109,12 @@ export default function AnnualPlanningClient() {
                 </div>
                 <div className="flex gap-3 print:hidden">
                     <button
+                        onClick={() => setShowAI(true)}
+                        className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold shadow-lg hover:scale-105 transition-all flex items-center gap-2 animate-pulse"
+                    >
+                        <span>✨</span> مساعد التخطيط
+                    </button>
+                    <button
                         onClick={handleDownload}
                         className="btn btn-ghost border-2 border-gray-300 hover:border-gray-800 hover:bg-gray-50 flex items-center gap-2"
                     >
@@ -139,6 +147,18 @@ export default function AnnualPlanningClient() {
                     </button>
                 </div>
             </div>
+
+            {showAI && (
+                <AIAssistant
+                    onClose={() => setShowAI(false)}
+                    context={{ months, planId }}
+                    pageTitle="مساعد التخطيط السنوي"
+                    suggestions={[
+                        { label: 'توزيع مواضيع', prompt: 'اقترح توزيعاً منطقياً لمواضيع اللغة العربية على مدار الفصل الأول.', icon: '📚' },
+                        { label: 'تحسين الجدول', prompt: 'راجع الجدول الحالي واقترح تحسينات لفعاليات شهر ديسمبر.', icon: '📅' }
+                    ]}
+                />
+            )}
 
             {/* Annual Planning Section (Detailed) */}
             <div className="glass-panel p-8 mb-8 print:border print:border-gray-300 print:shadow-none">

@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 
-import { ClassGroup, Student } from './types';
+import { ClassGroup, Student, StudentAssessment, Term } from './types';
 
 export interface Coordinator {
     id?: string;
@@ -667,6 +667,56 @@ export const getPersonalInterventionPlansByCoordinator = async (coordinatorId: s
         });
     } catch (error) {
         console.error('Error getting personal plans by coordinator:', error);
+        throw error;
+    }
+};
+
+// Student Assessments (Multi-year / Multi-term)
+export const getStudentAssessments = async (classId: string, year: number, term: Term): Promise<StudentAssessment[]> => {
+    try {
+        const q = query(
+            collection(db, 'studentAssessments'),
+            where('classId', '==', classId),
+            where('year', '==', year),
+            where('term', '==', term)
+        );
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        } as StudentAssessment));
+    } catch (error) {
+        console.error('Error getting student assessments:', error);
+        throw error;
+    }
+};
+
+export const saveStudentAssessments = async (assessments: StudentAssessment[]) => {
+    try {
+        const batch: any[] = [];
+        for (const assessment of assessments) {
+            const docRef = doc(db, 'studentAssessments', assessment.id);
+            batch.push(setDoc(docRef, {
+                ...assessment,
+                updatedAt: Date.now()
+            }));
+        }
+        await Promise.all(batch);
+    } catch (error) {
+        console.error('Error saving student assessments:', error);
+        throw error;
+    }
+};
+
+export const saveStudentAssessment = async (assessment: StudentAssessment) => {
+    try {
+        const docRef = doc(db, 'studentAssessments', assessment.id);
+        await setDoc(docRef, {
+            ...assessment,
+            updatedAt: Date.now()
+        });
+    } catch (error) {
+        console.error('Error saving student assessment:', error);
         throw error;
     }
 };

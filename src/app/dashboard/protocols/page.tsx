@@ -11,6 +11,7 @@ import {
     type MeetingProtocol,
     createNotification
 } from '@/lib/firestoreService';
+import AIAssistant from '@/components/AIAssistant';
 
 export default function ProtocolsPage() {
     const { user } = useAuth();
@@ -23,6 +24,7 @@ export default function ProtocolsPage() {
 
     const [meetingProtocols, setMeetingProtocols] = useState<MeetingProtocol[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showAI, setShowAI] = useState(false);
 
     useEffect(() => {
         if (effectiveCoordinatorId) {
@@ -153,6 +155,15 @@ export default function ProtocolsPage() {
                     </div>
                 </div>
 
+                <div className="flex gap-4">
+                    <button
+                        onClick={() => setShowAI(true)}
+                        className="p-3 bg-purple-600 text-white rounded-2xl shadow-xl hover:scale-105 transition-all flex items-center gap-2 animate-pulse"
+                    >
+                        <span>✨</span> المساعد الذكي
+                    </button>
+                </div>
+
                 {/* PDF Export Button */}
                 <button
                     onClick={exportToPDF}
@@ -166,6 +177,18 @@ export default function ProtocolsPage() {
                     تنزيل PDF
                 </button>
             </div>
+
+            {showAI && (
+                <AIAssistant
+                    onClose={() => setShowAI(false)}
+                    context={{ meetingProtocols }}
+                    pageTitle="مساعد البروتوكولات"
+                    suggestions={[
+                        { label: 'تحليل الجلسة', prompt: 'راجع محتوى آخر بروتوكول واستخرج أهم 3 قرارات تم اتخاذها.', icon: '🔍' },
+                        { label: 'صياغة توصيات', prompt: 'بناءً على ملخص الجلسة، اقترح 3 توصيات مهنية إضافية.', icon: '💡' }
+                    ]}
+                />
+            )}
 
             {/* Print Title */}
             <div className="hidden print:block mb-8 text-center">

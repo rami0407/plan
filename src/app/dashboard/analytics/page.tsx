@@ -15,11 +15,13 @@ import {
 } from 'recharts';
 import { getStudents, getClasses } from '@/lib/firestoreService';
 import { Student, ClassGroup } from '@/lib/types';
+import AIAssistant from '@/components/AIAssistant';
 
 export default function AnalyticsPage() {
     const [students, setStudents] = useState<Student[]>([]);
     const [classes, setClasses] = useState<ClassGroup[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showAI, setShowAI] = useState(false);
 
     // Filter State
     const [viewLevel, setViewLevel] = useState<'school' | 'grade' | 'class'>('school');
@@ -211,6 +213,13 @@ export default function AnalyticsPage() {
                         <p className="text-gray-500 text-lg">رؤية شاملة للأداء الأكاديمي والإحصائيات المدرسية</p>
                     </div>
 
+                    <button
+                        onClick={() => setShowAI(true)}
+                        className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl font-bold shadow-xl hover:scale-105 transition-all flex items-center gap-2 animate-pulse"
+                    >
+                        <span>✨</span> المساعد الإحصائي الذكي
+                    </button>
+
                     {/* View Controls */}
                     <div className="flex bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
                         <button
@@ -273,6 +282,18 @@ export default function AnalyticsPage() {
                     </div>
                 )}
             </div>
+
+            {showAI && (
+                <AIAssistant
+                    onClose={() => setShowAI(false)}
+                    context={{ students: filteredStudents, viewLevel, selectedGrade, selectedClassId, subjectPerformanceData }}
+                    pageTitle="المساعد الإحصائي"
+                    suggestions={[
+                        { label: 'تحليل الأداء', prompt: 'قم بتحليل بيانات الأداء المعروضة واذكر أهم 3 نقاط قوة ونقاط ضعف.', icon: '📉' },
+                        { label: 'توصيات للغياب', prompt: 'بناءً على نسبة الغيابات، ما هي الخطوات المقترحة لتحسين الحضور؟', icon: '🚨' }
+                    ]}
+                />
+            )}
 
             {/* Metrics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import AIAssistant from '@/components/AIAssistant';
 
 const CURRENT_YEAR = 2026;
 const YEARS = [CURRENT_YEAR, CURRENT_YEAR + 1, CURRENT_YEAR + 2];
@@ -15,6 +16,7 @@ const mockPlans = [
 export default function PlanningPage() {
     const router = useRouter();
     const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
+    const [showAI, setShowAI] = useState(false);
 
     const currentPlan = mockPlans.find(p => p.year === selectedYear);
 
@@ -35,8 +37,28 @@ export default function PlanningPage() {
                         <h1 className="mb-1">خطط العمل السنوية</h1>
                         <p className="text-gray-500 text-lg">نظام إدارة وتخطيط العمل السنوي للمركزين</p>
                     </div>
+                    <div className="mr-auto">
+                        <button
+                            onClick={() => setShowAI(true)}
+                            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl font-bold shadow-xl hover:scale-105 transition-all flex items-center gap-2 animate-pulse"
+                        >
+                            <span>✨</span> مساعد التخطيط الذكي
+                        </button>
+                    </div>
                 </div>
             </div>
+
+            {showAI && (
+                <AIAssistant
+                    onClose={() => setShowAI(false)}
+                    context={{ selectedYear, mockPlans, currentPlan }}
+                    pageTitle="مساعد التخطيط"
+                    suggestions={[
+                        { label: 'اقتراح أهداف', prompt: 'اقترح 5 أهداف سنوية رئيسية لمركز تربوي بناءً على السنة الحالية.', icon: '🎯' },
+                        { label: 'تحسين الخطة', prompt: 'كيف يمكنني تحسين كفاءة خطة العمل السنوية؟', icon: '📈' }
+                    ]}
+                />
+            )}
 
             {/* Year Selector Card */}
             <div className="glass-panel p-8 mb-8 relative overflow-hidden">
