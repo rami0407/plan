@@ -318,7 +318,13 @@ export default function CalendarClient() {
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
                                 </button>
                                 <span className="font-bold text-gray-700">{currentDate.getFullYear()}</span>
-                            </button>
+                                <button
+                                    onClick={() => setCurrentDate(new Date(currentDate.getFullYear() + 1, currentDate.getMonth(), 1))}
+                                    className="p-1 hover:bg-white rounded shadow-sm"
+                                >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -331,218 +337,214 @@ export default function CalendarClient() {
                 >
                     <span>✨</span> مساعد التقويم الذكي
                 </button>
-                {/* Empty div to balance flex if needed, or remove if causing spacing issues */}
-                <div className="w-[120px]"></div>
             </div>
-        </div>
 
+            {showAI && (
+                <AIAssistant
+                    onClose={() => setShowAI(false)}
+                    context={{ events, metadata, currentMonth: MONTHS[currentDate.getMonth()] }}
+                    pageTitle="مساعد التقويم المدرسي"
+                    suggestions={[
+                        { label: 'تحليل الفعاليات', prompt: 'راجع فعاليات هذا الشهر وأخبرني إذا كان هناك ضغط في الامتحانات أو الاجتماعات.', icon: '🔍' },
+                        { label: 'اقتراح فعاليات', prompt: 'بناءً على قيمة الشهر، اقترح فعاليتين تربويتين لتعزيزها.', icon: '💡' }
+                    ]}
+                />
+            )
+            }
+
+            {/* Calendar Container */}
+            <div className={styles.calendarContainer}>
+                {/* Headers */}
+                <div className={styles.header}>
+                    {DAYS.map(day => (
+                        <div key={day} className={styles.headerDay}>{day}</div>
+                    ))}
+                </div>
+
+                {/* Grid */}
+                <div className={styles.grid}>
+                    {calendarDays.map((dayObj, idx) => {
+                        const visibleEvents = dayObj.events.slice(0, MAX_VISIBLE_EVENTS);
+                        const overflowCount = dayObj.events.length - MAX_VISIBLE_EVENTS;
+
+                        return (
+                            <div
+                                key={idx}
+                                className={`${styles.dayCell} ${!dayObj.isCurrentMonth ? styles.otherMonth : ''}`}
+                                onClick={() => handleDayClick(dayObj.date)}
+                            >
+                                <div className={styles.dayHeader}>
+                                    <span className={`${styles.dayNumber} ${dayObj.date === todayStr ? styles.today : ''}`}>
+                                        {dayObj.day === 1 ? `${dayObj.day} ${MONTHS[parseInt(dayObj.date.split('-')[1]) - 1]}` : dayObj.day}
+                                    </span>
+                                </div>
+
+                                <div className={styles.eventList}>
+                                    {visibleEvents.map(event => (
+                                        <div
+                                            key={event.id}
+                                            className={styles.eventItem}
+                                            style={{ backgroundColor: event.color }}
+                                            onClick={(e) => handleEventClick(e, event)}
+                                            title={event.title}
+                                        >
+                                            {event.title}
+                                        </div>
+                                    ))}
+                                    {overflowCount > 0 && (
+                                        <div
+                                            className={styles.moreEvents}
+                                            onClick={(e) => handleMoreClick(e, dayObj.events, dayObj.date)}
+                                        >
+                                            {overflowCount}+ المزيد
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+            </div>
+
+            {/* Event Create/Edit Modal */}
             {
-        showAI && (
-            <AIAssistant
-                onClose={() => setShowAI(false)}
-                context={{ events, metadata, currentMonth: MONTHS[currentDate.getMonth()] }}
-                pageTitle="مساعد التقويم المدرسي"
-                suggestions={[
-                    { label: 'تحليل الفعاليات', prompt: 'راجع فعاليات هذا الشهر وأخبرني إذا كان هناك ضغط في الامتحانات أو الاجتماعات.', icon: '🔍' },
-                    { label: 'اقتراح فعاليات', prompt: 'بناءً على قيمة الشهر، اقترح فعاليتين تربويتين لتعزيزها.', icon: '💡' }
-                ]}
-            />
-        )
-    }
+                isEventModalOpen && (
+                    <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center p-4">
+                        <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                            <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
+                                <h3 className="font-medium text-gray-800">
+                                    {editingEvent ? 'تعديل حدث' : 'حدث جديد'}
+                                </h3>
+                                <button onClick={() => setIsEventModalOpen(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+                            </div>
 
-    {/* Calendar Container */ }
-    <div className={styles.calendarContainer}>
-        {/* Headers */}
-        <div className={styles.header}>
-            {DAYS.map(day => (
-                <div key={day} className={styles.headerDay}>{day}</div>
-            ))}
-        </div>
-
-        {/* Grid */}
-        <div className={styles.grid}>
-            {calendarDays.map((dayObj, idx) => {
-                const visibleEvents = dayObj.events.slice(0, MAX_VISIBLE_EVENTS);
-                const overflowCount = dayObj.events.length - MAX_VISIBLE_EVENTS;
-
-                return (
-                    <div
-                        key={idx}
-                        className={`${styles.dayCell} ${!dayObj.isCurrentMonth ? styles.otherMonth : ''}`}
-                        onClick={() => handleDayClick(dayObj.date)}
-                    >
-                        <div className={styles.dayHeader}>
-                            <span className={`${styles.dayNumber} ${dayObj.date === todayStr ? styles.today : ''}`}>
-                                {dayObj.day === 1 ? `${dayObj.day} ${MONTHS[parseInt(dayObj.date.split('-')[1]) - 1]}` : dayObj.day}
-                            </span>
-                        </div>
-
-                        <div className={styles.eventList}>
-                            {visibleEvents.map(event => (
-                                <div
-                                    key={event.id}
-                                    className={styles.eventItem}
-                                    style={{ backgroundColor: event.color }}
-                                    onClick={(e) => handleEventClick(e, event)}
-                                    title={event.title}
-                                >
-                                    {event.title}
+                            <div className="p-6 space-y-4">
+                                <div>
+                                    <input
+                                        type="text"
+                                        className="w-full text-lg font-medium border-b-2 border-gray-200 focus:border-blue-500 outline-none pb-2 transition-colors placeholder-gray-400"
+                                        value={formData.title}
+                                        onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                        placeholder="أضف عنواناً"
+                                        autoFocus
+                                    />
                                 </div>
-                            ))}
-                            {overflowCount > 0 && (
-                                <div
-                                    className={styles.moreEvents}
-                                    onClick={(e) => handleMoreClick(e, dayObj.events, dayObj.date)}
-                                >
-                                    {overflowCount}+ المزيد
+
+                                <div className="flex gap-2 flex-wrap">
+                                    {Object.entries(EVENT_LABELS).map(([key, label]) => (
+                                        <button
+                                            key={key}
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, type: key as EventType })}
+                                            className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${formData.type === key
+                                                ? 'ring-2 ring-offset-1 ring-blue-500 text-white'
+                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                }`}
+                                            style={{
+                                                backgroundColor: formData.type === key ? EVENT_COLORS[key as EventType] : undefined
+                                            }}
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
                                 </div>
-                            )}
+
+                                <div className="flex items-center gap-2 text-gray-600 text-sm">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                    <span>{selectedDate}</span>
+                                </div>
+
+                                <div>
+                                    <textarea
+                                        className="w-full p-3 bg-gray-50 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-500 min-h-[100px] resize-none"
+                                        placeholder="أضف وصفاً أو ملاحظات..."
+                                        value={formData.description}
+                                        onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="p-4 border-t flex justify-end gap-2">
+                                {editingEvent && (
+                                    <button
+                                        onClick={handleDeleteEvent}
+                                        className="px-4 py-2 text-red-600 text-sm font-medium hover:bg-red-50 rounded mr-auto"
+                                    >
+                                        حذف
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => setIsEventModalOpen(false)}
+                                    className="px-4 py-2 text-gray-600 text-sm font-medium hover:bg-gray-100 rounded"
+                                >
+                                    إلغاء
+                                </button>
+                                <button
+                                    onClick={handleSaveEvent}
+                                    className="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 shadow-sm"
+                                >
+                                    حفظ
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )
-            })}
-        </div>
-    </div>
+            }
 
-    {/* Event Create/Edit Modal */ }
-    {
-        isEventModalOpen && (
-            <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center p-4">
-                <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-                    <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
-                        <h3 className="font-medium text-gray-800">
-                            {editingEvent ? 'تعديل حدث' : 'حدث جديد'}
-                        </h3>
-                        <button onClick={() => setIsEventModalOpen(false)} className="text-gray-400 hover:text-gray-600">✕</button>
-                    </div>
-
-                    <div className="p-6 space-y-4">
-                        <div>
-                            <input
-                                type="text"
-                                className="w-full text-lg font-medium border-b-2 border-gray-200 focus:border-blue-500 outline-none pb-2 transition-colors placeholder-gray-400"
-                                value={formData.title}
-                                onChange={e => setFormData({ ...formData, title: e.target.value })}
-                                placeholder="أضف عنواناً"
-                                autoFocus
-                            />
-                        </div>
-
-                        <div className="flex gap-2 flex-wrap">
-                            {Object.entries(EVENT_LABELS).map(([key, label]) => (
-                                <button
-                                    key={key}
-                                    type="button"
-                                    onClick={() => setFormData({ ...formData, type: key as EventType })}
-                                    className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${formData.type === key
-                                        ? 'ring-2 ring-offset-1 ring-blue-500 text-white'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                        }`}
-                                    style={{
-                                        backgroundColor: formData.type === key ? EVENT_COLORS[key as EventType] : undefined
-                                    }}
-                                >
-                                    {label}
-                                </button>
-                            ))}
-                        </div>
-
-                        <div className="flex items-center gap-2 text-gray-600 text-sm">
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                            <span>{selectedDate}</span>
-                        </div>
-
-                        <div>
-                            <textarea
-                                className="w-full p-3 bg-gray-50 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-500 min-h-[100px] resize-none"
-                                placeholder="أضف وصفاً أو ملاحظات..."
-                                value={formData.description}
-                                onChange={e => setFormData({ ...formData, description: e.target.value })}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="p-4 border-t flex justify-end gap-2">
-                        {editingEvent && (
-                            <button
-                                onClick={handleDeleteEvent}
-                                className="px-4 py-2 text-red-600 text-sm font-medium hover:bg-red-50 rounded mr-auto"
-                            >
-                                حذف
-                            </button>
-                        )}
-                        <button
-                            onClick={() => setIsEventModalOpen(false)}
-                            className="px-4 py-2 text-gray-600 text-sm font-medium hover:bg-gray-100 rounded"
-                        >
-                            إلغاء
-                        </button>
-                        <button
-                            onClick={handleSaveEvent}
-                            className="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 shadow-sm"
-                        >
-                            حفظ
-                        </button>
-                    </div>
-                </div>
-            </div>
-        )
-    }
-
-    {/* Day View Modal (Show More) */ }
-    {
-        isDayViewOpen && (
-            <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-                <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[80vh]">
-                    <div className="p-4 border-b flex justify-between items-center bg-gray-50">
-                        <div className="flex flex-col">
-                            <span className="text-xs text-gray-500 font-medium">{DAYS[new Date(selectedDate).getDay()]}</span>
-                            <span className="text-xl font-bold text-gray-800">{new Date(selectedDate).getDate()}</span>
-                        </div>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => {
-                                    setEditingEvent(null);
-                                    setFormData({ title: '', type: 'event', description: '' });
-                                    setIsEventModalOpen(true);
-                                    // Optional: keep day view open or close it? usually creating event closes popup.
-                                }}
-                                className="p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100"
-                                title="إضافة حدث"
-                            >
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                            </button>
-                            <button onClick={() => setIsDayViewOpen(false)} className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100">✕</button>
-                        </div>
-                    </div>
-
-                    <div className="overflow-y-auto p-2 flex-1">
-                        {dayViewEvents.length === 0 ? (
-                            <p className="text-center text-gray-400 py-8 text-sm">لا توجد فعاليات</p>
-                        ) : (
-                            dayViewEvents.map(event => (
-                                <div
-                                    key={event.id}
-                                    className="mb-2 p-3 rounded-lg hover:bg-gray-50 cursor-pointer group border-r-4 border-transparent hover:border-r-gray-200 transition-all"
-                                    style={{ borderRightColor: event.color }}
-                                    onClick={(e) => {
-                                        setIsDayViewOpen(false); // Close day view to open edit ? Or stack? stack is better but complexity.
-                                        handleEventClick(e, event);
-                                    }}
-                                >
-                                    <div className="font-medium text-gray-800 text-sm mb-1">{event.title}</div>
-                                    <div className="text-xs text-gray-500 flex gap-2">
-                                        <span style={{ color: event.color }}>{EVENT_LABELS[event.type]}</span>
-                                        {event.description && <span className="truncate max-w-[150px]">- {event.description}</span>}
-                                    </div>
+            {/* Day View Modal (Show More) */}
+            {
+                isDayViewOpen && (
+                    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[80vh]">
+                            <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+                                <div className="flex flex-col">
+                                    <span className="text-xs text-gray-500 font-medium">{DAYS[new Date(selectedDate).getDay()]}</span>
+                                    <span className="text-xl font-bold text-gray-800">{new Date(selectedDate).getDate()}</span>
                                 </div>
-                            ))
-                        )}
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => {
+                                            setEditingEvent(null);
+                                            setFormData({ title: '', type: 'event', description: '' });
+                                            setIsEventModalOpen(true);
+                                            // Optional: keep day view open or close it? usually creating event closes popup.
+                                        }}
+                                        className="p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100"
+                                        title="إضافة حدث"
+                                    >
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                    </button>
+                                    <button onClick={() => setIsDayViewOpen(false)} className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100">✕</button>
+                                </div>
+                            </div>
+
+                            <div className="overflow-y-auto p-2 flex-1">
+                                {dayViewEvents.length === 0 ? (
+                                    <p className="text-center text-gray-400 py-8 text-sm">لا توجد فعاليات</p>
+                                ) : (
+                                    dayViewEvents.map(event => (
+                                        <div
+                                            key={event.id}
+                                            className="mb-2 p-3 rounded-lg hover:bg-gray-50 cursor-pointer group border-r-4 border-transparent hover:border-r-gray-200 transition-all"
+                                            style={{ borderRightColor: event.color }}
+                                            onClick={(e) => {
+                                                setIsDayViewOpen(false); // Close day view to open edit ? Or stack? stack is better but complexity.
+                                                handleEventClick(e, event);
+                                            }}
+                                        >
+                                            <div className="font-medium text-gray-800 text-sm mb-1">{event.title}</div>
+                                            <div className="text-xs text-gray-500 flex gap-2">
+                                                <span style={{ color: event.color }}>{EVENT_LABELS[event.type]}</span>
+                                                {event.description && <span className="truncate max-w-[150px]">- {event.description}</span>}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
-        )
-    }
-                    </div >
-                    );
+                )
+            }
+        </div >
+    );
 }
