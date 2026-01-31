@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveAs } from 'file-saver';
@@ -8,6 +8,14 @@ import { Document, Packer, Paragraph, TextRun, AlignmentType, Table, TableRow, T
 import AIAssistant from '@/components/AIAssistant';
 
 export default function PersonalInterventionPage() {
+    return (
+        <Suspense fallback={<div className="p-8 text-center">جاري التحميل...</div>}>
+            <PersonalInterventionContent />
+        </Suspense>
+    );
+}
+
+function PersonalInterventionContent() {
     const router = useRouter();
     const { user } = useAuth();
     const searchParams = useSearchParams();

@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import ReviewPlanClient from './client';
 
 export async function generateStaticParams() {
@@ -9,5 +10,9 @@ export async function generateStaticParams() {
 
 export default async function ReviewPlanPage({ params }: { params: Promise<{ year: string }> }) {
     const { year } = await params;
-    return <ReviewPlanClient year={year} />;
+    return (
+        <Suspense fallback={<div className="p-8 text-center">جاري التحميل...</div>}>
+            <ReviewPlanClient year={year} />
+        </Suspense>
+    );
 }

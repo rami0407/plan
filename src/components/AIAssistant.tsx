@@ -12,7 +12,7 @@ interface Suggestion {
 interface AIAssistantProps {
     onClose: () => void;
     context: any;
-    pageTitle: string;
+    pageTitle?: string;
     suggestions?: Suggestion[];
 }
 
@@ -95,8 +95,8 @@ export default function AIAssistant({ onClose, context, pageTitle, suggestions =
                             className={`flex ${m.role === 'assistant' ? 'justify-start' : 'justify-end'}`}
                         >
                             <div className={`max-w-[85%] p-4 rounded-2xl shadow-sm ${m.role === 'assistant'
-                                    ? 'bg-white border border-gray-100 text-gray-800'
-                                    : 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-indigo-100'
+                                ? 'bg-white border border-gray-100 text-gray-800'
+                                : 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-indigo-100'
                                 }`}>
                                 <p className="text-sm leading-relaxed whitespace-pre-wrap">{m.content}</p>
                             </div>
