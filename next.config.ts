@@ -1,11 +1,11 @@
 import type { NextConfig } from "next";
 
-const isProd = process.env.NODE_ENV === 'production';
+const isProd = process.env.NODE_ENV === 'production' || process.env.CI === 'true';
 
 const nextConfig: NextConfig = {
-  output: isProd ? 'export' : undefined,
+  output: 'export',
   basePath: isProd ? '/plan' : undefined,
-  trailingSlash: isProd,
+  trailingSlash: true,
   images: {
     unoptimized: true,
   },
