@@ -26,7 +26,7 @@ export default function AIAssistant({ onClose, context, pageTitle, suggestions =
     ]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [selectedModel, setSelectedModel] = useState<AIModel>('gemini');
+    const [selectedModel, setSelectedModel] = useState<AIModel>('groq');
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -63,8 +63,15 @@ export default function AIAssistant({ onClose, context, pageTitle, suggestions =
 
                 const genAI = new GoogleGenerativeAI(apiKey);
                 const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-                const result = await model.generateContent(prompt);
-                responseText = result.response.text();
+                try {
+                    const result = await model.generateContent(prompt);
+                    responseText = result.response.text();
+                } catch (e: any) {
+                    if (e.message?.includes('404') || e.message?.includes('not found')) {
+                        throw new Error('نموذج Gemini غير مفعل في حسابك أو غير مدعوم. تأكد من تفعيل Generative Language API في Google Console.');
+                    }
+                    throw e;
+                }
 
             } else {
                 const apiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY;

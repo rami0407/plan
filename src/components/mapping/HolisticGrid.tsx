@@ -145,7 +145,7 @@ export default function HolisticGrid({ students: initialData, onUpdate, subjects
                 onScroll={handleTableScroll}
             >
                 <table className={styles.table}>
-                    <thead>
+                    <thead className="bg-[#2D5DA1] text-white">
                         <tr>
                             <th style={{ width: '50px' }}></th>
                             <th>اسم الطالب</th>
