@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 
 interface Suggestion {
     label: string;
@@ -16,12 +18,15 @@ interface AIAssistantProps {
     suggestions?: Suggestion[];
 }
 
+type AIModel = 'gemini' | 'groq';
+
 export default function AIAssistant({ onClose, context, pageTitle, suggestions = [] }: AIAssistantProps) {
     const [messages, setMessages] = useState<{ role: 'user' | 'assistant' | 'system'; content: string }[]>([
         { role: 'system', content: `أنت مساعد تربوي ذكي متخصص في دعم المعلمين والمدراء. أنت تعمل في سياق ${pageTitle}.` }
     ]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [selectedModel, setSelectedModel] = useState<AIModel>('gemini');
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -41,18 +46,56 @@ export default function AIAssistant({ onClose, context, pageTitle, suggestions =
         setIsLoading(true);
 
         try {
-            // Here you would normally call your AI service (Gemini/Groq)
-            // For now, we simulate a response based on the context
-            setTimeout(() => {
-                const aiResponse = {
-                    role: 'assistant' as const,
-                    content: `بناءً على البيانات المتوفرة في ${pageTitle}، أرى أن هناك نقاطاً هامة يجب الانتباه إليها. كيف يمكنني مساعدتك أكثر في تحليل هذه المعلومات؟`
-                };
-                setMessages(prev => [...prev, aiResponse]);
-                setIsLoading(false);
-            }, 1000);
-        } catch (error) {
+            let responseText = '';
+
+            const prompt = `
+            أنت مساعد تربوي ذكي وودود يعمل ضمن نظام إدارة المدارس.
+            السياق الحالي هو: صفحة ${pageTitle || 'عام'}
+            
+            سؤال المستخدم: ${content}
+            
+            أجب باللغة العربية بأسلوب مهني ومشجع. كن مختصراً ومباشراً.
+            `;
+
+            if (selectedModel === 'gemini') {
+                const apiKey = process.env.NEXT_PUBLIC_GOOGLE_GEMINI_API_KEY;
+                if (!apiKey) throw new Error('مفتاح Google Gemini API مفقود.');
+
+                const genAI = new GoogleGenerativeAI(apiKey);
+                const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+                const result = await model.generateContent(prompt);
+                responseText = result.response.text();
+
+            } else {
+                const apiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY;
+                if (!apiKey) throw new Error('مفتاح Groq API مفقود.');
+
+                const groq = new Groq({ apiKey, dangerouslyAllowBrowser: true });
+                const completion = await groq.chat.completions.create({
+                    messages: [
+                        { role: 'system', content: 'أنت مساعد تربوي ذكي تتحدث العربية.' },
+                        { role: 'user', content: prompt }
+                    ],
+                    model: 'mixtral-8x7b-32768',
+                });
+                responseText = completion.choices[0]?.message?.content || '';
+            }
+
+            const aiResponse = {
+                role: 'assistant' as const,
+                content: responseText
+            };
+            setMessages(prev => [...prev, aiResponse]);
+
+        } catch (error: any) {
             console.error('AI Error:', error);
+            const errorMessage = error.message || 'عذراً، حدث خطأ أثناء الاتصال بالمساعد الذكي.';
+            const errorResponse = {
+                role: 'assistant' as const,
+                content: `خطأ: ${errorMessage}`
+            };
+            setMessages(prev => [...prev, errorResponse]);
+        } finally {
             setIsLoading(false);
         }
     };
@@ -66,22 +109,46 @@ export default function AIAssistant({ onClose, context, pageTitle, suggestions =
             dir="rtl"
         >
             {/* Header */}
-            <div className="p-6 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white flex justify-between items-center shadow-lg">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-md">
-                        <span className="text-2xl">✨</span>
+            <div className="p-6 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white shadow-lg">
+                <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-md">
+                            <span className="text-2xl">✨</span>
+                        </div>
+                        <div>
+                            <h2 className="font-black text-lg leading-tight">{pageTitle || 'المساعد الذكي'}</h2>
+                            <p className="text-xs text-white/70 font-medium">المساعد التربوي الذكي</p>
+                        </div>
                     </div>
-                    <div>
-                        <h2 className="font-black text-lg leading-tight">{pageTitle}</h2>
-                        <p className="text-xs text-white/70 font-medium">المساعد التربوي الذكي</p>
-                    </div>
+                    <button
+                        onClick={onClose}
+                        className="w-8 h-8 hover:bg-white/10 rounded-full flex items-center justify-center transition-colors"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
                 </div>
-                <button
-                    onClick={onClose}
-                    className="w-10 h-10 hover:bg-white/10 rounded-full flex items-center justify-center transition-colors"
-                >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
+
+                {/* Model Selector */}
+                <div className="flex bg-black/20 p-1 rounded-lg">
+                    <button
+                        onClick={() => setSelectedModel('gemini')}
+                        className={`flex-1 py-1.5 px-3 rounded-md text-xs font-bold transition-all ${selectedModel === 'gemini'
+                                ? 'bg-white text-indigo-600 shadow-sm'
+                                : 'text-white/70 hover:text-white hover:bg-white/10'
+                            }`}
+                    >
+                        Google Gemini
+                    </button>
+                    <button
+                        onClick={() => setSelectedModel('groq')}
+                        className={`flex-1 py-1.5 px-3 rounded-md text-xs font-bold transition-all ${selectedModel === 'groq'
+                                ? 'bg-white text-indigo-600 shadow-sm'
+                                : 'text-white/70 hover:text-white hover:bg-white/10'
+                            }`}
+                    >
+                        Groq AI
+                    </button>
+                </div>
             </div>
 
             {/* Messages Area */}
@@ -142,7 +209,7 @@ export default function AIAssistant({ onClose, context, pageTitle, suggestions =
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                        placeholder="اسأل المساعد الذكي..."
+                        placeholder={`اسأل المساعد (${selectedModel === 'gemini' ? 'Google Gemini' : 'Groq AI'})...`}
                         className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-6 py-4 pr-12 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all text-sm font-medium"
                     />
                     <button
@@ -153,7 +220,7 @@ export default function AIAssistant({ onClose, context, pageTitle, suggestions =
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 2L11 13"></path><path d="M22 2L15 22L11 13L2 9L22 2Z"></path></svg>
                     </button>
                 </div>
-                <p className="text-[10px] text-center text-gray-400 mt-4 font-medium">مدعوم بتقنية الذكاء الاصطناعي لدعم العملية التربوية</p>
+                <p className="text-[10px] text-center text-gray-400 mt-4 font-medium">مدعوم بـ {selectedModel === 'gemini' ? 'Google Gemini' : 'Groq AI'}</p>
             </div>
         </motion.div>
     );
