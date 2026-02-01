@@ -122,6 +122,35 @@ export default function HolisticGrid({ students: initialData, onUpdate, subjects
         return '!bg-red-100 !text-red-800 !font-bold'; // Weak/Fail
     };
 
+    // Calculate statistics for a subject
+    const calculateSubjectStats = (subject: string) => {
+        const grades = students
+            .map(s => s.grades[subject])
+            .filter(g => g !== undefined && g !== null && g !== '')
+            .map(g => Number(g));
+
+        if (grades.length === 0) {
+            return { avg: 0, min: 0, max: 0, passRate: 0, excellenceRate: 0, count: 0 };
+        }
+
+        const sum = grades.reduce((a, b) => a + b, 0);
+        const avg = Math.round(sum / grades.length);
+        const min = Math.min(...grades);
+        const max = Math.max(...grades);
+        const passCount = grades.filter(g => g >= 55).length;
+        const excellenceCount = grades.filter(g => g >= 90).length;
+        const passRate = Math.round((passCount / grades.length) * 100);
+        const excellenceRate = Math.round((excellenceCount / grades.length) * 100);
+
+        return { avg, min, max, passRate, excellenceRate, count: grades.length };
+    };
+
+    const getStatsBgClass = (avg: number) => {
+        if (avg >= 80) return 'bg-green-50';
+        if (avg >= 70) return 'bg-yellow-50';
+        return 'bg-red-50';
+    };
+
     return (
         <div className="w-full relative">
             {/* Top Scrollbar - Styled for visibility */}
@@ -251,6 +280,28 @@ export default function HolisticGrid({ students: initialData, onUpdate, subjects
                             </tr>
                         ))}
                     </tbody>
+                    <tfoot className="bg-gradient-to-r from-gray-50 to-gray-100 border-t-2 border-primary">
+                        <tr>
+                            <td colSpan={2} className="p-4 font-bold text-gray-700 text-right">
+                                📊 التحليل الإحصائي
+                            </td>
+                            <td colSpan={3}></td>
+                            {subjects.map(sub => {
+                                const stats = calculateSubjectStats(sub);
+                                return (
+                                    <td key={sub} className={`p-3 ${getStatsBgClass(stats.avg)} border-l border-gray-200`}>
+                                        <div className="text-xs space-y-1">
+                                            <div className="font-bold text-gray-800">المعدل: {stats.avg}</div>
+                                            <div className="text-gray-600">أعلى: {stats.max} | أدنى: {stats.min}</div>
+                                            <div className="text-gray-600">نجاح: {stats.passRate}%</div>
+                                            <div className="text-green-700 font-semibold">امتياز: {stats.excellenceRate}%</div>
+                                        </div>
+                                    </td>
+                                );
+                            })}
+                            <td></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </div>
