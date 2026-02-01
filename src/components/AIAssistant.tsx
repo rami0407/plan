@@ -62,7 +62,7 @@ export default function AIAssistant({ onClose, context, pageTitle, suggestions =
                 if (!apiKey) throw new Error('مفتاح Google Gemini API مفقود.');
 
                 const genAI = new GoogleGenerativeAI(apiKey);
-                const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+                const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
                 const result = await model.generateContent(prompt);
                 responseText = result.response.text();
 
@@ -76,7 +76,7 @@ export default function AIAssistant({ onClose, context, pageTitle, suggestions =
                         { role: 'system', content: 'أنت مساعد تربوي ذكي تتحدث العربية.' },
                         { role: 'user', content: prompt }
                     ],
-                    model: 'mixtral-8x7b-32768',
+                    model: 'llama3-70b-8192',
                 });
                 responseText = completion.choices[0]?.message?.content || '';
             }
@@ -133,8 +133,8 @@ export default function AIAssistant({ onClose, context, pageTitle, suggestions =
                     <button
                         onClick={() => setSelectedModel('gemini')}
                         className={`flex-1 py-1.5 px-3 rounded-md text-xs font-bold transition-all ${selectedModel === 'gemini'
-                                ? 'bg-white text-indigo-600 shadow-sm'
-                                : 'text-white/70 hover:text-white hover:bg-white/10'
+                            ? 'bg-white text-indigo-600 shadow-sm'
+                            : 'text-white/70 hover:text-white hover:bg-white/10'
                             }`}
                     >
                         Google Gemini
@@ -142,8 +142,8 @@ export default function AIAssistant({ onClose, context, pageTitle, suggestions =
                     <button
                         onClick={() => setSelectedModel('groq')}
                         className={`flex-1 py-1.5 px-3 rounded-md text-xs font-bold transition-all ${selectedModel === 'groq'
-                                ? 'bg-white text-indigo-600 shadow-sm'
-                                : 'text-white/70 hover:text-white hover:bg-white/10'
+                            ? 'bg-white text-indigo-600 shadow-sm'
+                            : 'text-white/70 hover:text-white hover:bg-white/10'
                             }`}
                     >
                         Groq AI
