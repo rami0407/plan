@@ -116,8 +116,8 @@ export default function PlanningPage() {
                     </button>
 
                     {showYearSelector && (
-                        <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-2xl border-2 border-blue-200 max-h-64 overflow-y-auto">
-                            <div className="p-2 grid grid-cols-4 gap-2">
+                        <div className="absolute z-50 w-full mt-2 bg-gradient-to-b from-blue-50 to-white rounded-2xl shadow-2xl border-4 border-blue-300 max-h-96 overflow-y-auto">
+                            <div className="p-5 grid grid-cols-3 gap-4">
                                 {ALL_YEARS.map(year => (
                                     <button
                                         key={year}
@@ -125,9 +125,9 @@ export default function PlanningPage() {
                                             setSelectedYear(year);
                                             setShowYearSelector(false);
                                         }}
-                                        className={`p-3 rounded-lg font-bold transition-all ${selectedYear === year
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-gray-50 text-gray-700 hover:bg-blue-50 hover:text-blue-600'
+                                        className={`p-5 rounded-xl font-bold text-xl transition-all border-2 ${selectedYear === year
+                                            ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-xl scale-110 border-blue-800'
+                                            : 'bg-white text-blue-800 border-blue-300 hover:bg-gradient-to-r hover:from-blue-500 hover:to-blue-600 hover:text-white hover:scale-105 hover:shadow-lg hover:border-blue-500'
                                             }`}
                                     >
                                         {year}
