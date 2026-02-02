@@ -74,7 +74,7 @@ export default function PlanningPage() {
             )}
 
             {/* Year Selector Card */}
-            <div className="glass-panel p-8 mb-8 relative overflow-hidden">
+            <div className="glass-panel p-8 mb-8 relative">
                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[var(--primary)] via-[var(--secondary)] to-[var(--accent)]"></div>
 
                 <div className="mb-6">
