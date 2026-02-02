@@ -5,8 +5,20 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AIAssistant from '@/components/AIAssistant';
 
-const CURRENT_YEAR = 2026;
-const YEARS = [CURRENT_YEAR, CURRENT_YEAR + 1, CURRENT_YEAR + 2];
+// Dynamic year calculation
+const getCurrentYear = () => new Date().getFullYear();
+const MIN_YEAR = 2023;
+const MAX_YEAR = 2040;
+const CURRENT_YEAR = getCurrentYear();
+
+// Generate array of years for dropdown
+const generateYearRange = (start: number, end: number) => {
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+};
+
+const ALL_YEARS = generateYearRange(MIN_YEAR, MAX_YEAR);
+// Show current year and next 2 years as cards
+const FEATURED_YEARS = [CURRENT_YEAR, CURRENT_YEAR + 1, CURRENT_YEAR + 2].filter(y => y <= MAX_YEAR);
 
 const mockPlans = [
     { year: 2026, status: 'DRAFT', lastModified: '2026-01-20' },
@@ -17,6 +29,7 @@ export default function PlanningPage() {
     const router = useRouter();
     const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
     const [showAI, setShowAI] = useState(false);
+    const [showYearSelector, setShowYearSelector] = useState(false);
 
     const currentPlan = mockPlans.find(p => p.year === selectedYear);
 
@@ -72,8 +85,8 @@ export default function PlanningPage() {
                     <p className="text-gray-600">قم باختيار السنة لعرض أو تعديل خطة العمل الخاصة بها</p>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                    {YEARS.map(year => (
+                <div className="grid grid-cols-3 gap-4 mb-4">
+                    {FEATURED_YEARS.map(year => (
                         <button
                             key={year}
                             onClick={() => setSelectedYear(year)}
@@ -87,6 +100,42 @@ export default function PlanningPage() {
                             <div className="text-sm opacity-75 mt-1">/ {year + 1}</div>
                         </button>
                     ))}
+                </div>
+
+                {/* Year Selector Dropdown */}
+                <div className="relative">
+                    <button
+                        onClick={() => setShowYearSelector(!showYearSelector)}
+                        className="w-full p-4 bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-200 rounded-xl font-bold text-blue-700 hover:border-blue-400 transition-all flex items-center justify-center gap-2"
+                    >
+                        <span>📆</span>
+                        اختر سنة أخرى ({MIN_YEAR} - {MAX_YEAR})
+                        <svg className={`w-5 h-5 transition-transform ${showYearSelector ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+
+                    {showYearSelector && (
+                        <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-2xl border-2 border-blue-200 max-h-64 overflow-y-auto">
+                            <div className="p-2 grid grid-cols-4 gap-2">
+                                {ALL_YEARS.map(year => (
+                                    <button
+                                        key={year}
+                                        onClick={() => {
+                                            setSelectedYear(year);
+                                            setShowYearSelector(false);
+                                        }}
+                                        className={`p-3 rounded-lg font-bold transition-all ${selectedYear === year
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-gray-50 text-gray-700 hover:bg-blue-50 hover:text-blue-600'
+                                            }`}
+                                    >
+                                        {year}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
