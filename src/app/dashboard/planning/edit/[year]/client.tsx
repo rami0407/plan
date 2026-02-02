@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { generateAcademicYearMonths, type MonthPlan } from '@/lib/academicCalendar';
 import { TeachingStaffMember, IntegrationPlan, SchoolProfileRow, BookListRow, AnnualGoal } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useAuth } from '@/contexts/AuthContext';
+import * as XLSX from 'xlsx';
 
 export default function EditPlanClient({ year }: { year: string }) {
     const router = useRouter();
@@ -103,6 +104,9 @@ export default function EditPlanClient({ year }: { year: string }) {
             behavioral: { goal: '', objective: '', method: '', timeframe: '', evaluation: '', participants: '' }
         }
     });
+
+    // File input ref for Excel upload
+    const excelFileInputRef = useRef<HTMLInputElement>(null);
 
     const openIntegrationModal = (plan?: IntegrationPlan) => {
         if (plan) {
@@ -303,6 +307,147 @@ export default function EditPlanClient({ year }: { year: string }) {
         window.print();
     };
 
+    // Excel Import Function
+    const handleExcelImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            try {
+                const data = evt.target?.result;
+                const workbook = XLSX.read(data, { type: 'binary' });
+
+                // Read School Profile sheet
+                if (workbook.SheetNames.includes('School Profile')) {
+                    const ws = workbook.Sheets['School Profile'];
+                    const jsonData: any[] = XLSX.utils.sheet_to_json(ws);
+
+                    if (jsonData.length > 0) {
+                        const newProfiles: SchoolProfileRow[] = jsonData.map((row, index) => ({
+                            id: Date.now().toString() + index,
+                            className: row['الصف'] || row['Classא'] || '',
+                            teacherName: row['اسم المعلم'] || row['Teacher Name'] || '',
+                            studentCount: Number(row['عدد الطلاب']) || Number(row['Students']) || 0,
+                            teachingHours: Number(row['ساعات تعليمية']) || Number(row['Teaching Hours']) || 0,
+                            individualHours: Number(row['ساعات فردية']) || Number(row['Individual Hours']) || 0,
+                            outstandingCount: Number(row['متميزون']) || Number(row['Outstanding']) || 0,
+                            strugglingCount: Number(row['متعثرون']) || Number(row['Struggling']) || 0,
+                            notes: row['ملاحظات'] || row['Notes'] || ''
+                        }));
+                        setSchoolProfileTable(newProfiles);
+                    }
+                }
+
+                // Read Book List sheet
+                if (workbook.SheetNames.includes('Book List')) {
+                    const ws = workbook.Sheets['Book List'];
+                    const jsonData: any[] = XLSX.utils.sheet_to_json(ws);
+
+                    if (jsonData.length > 0) {
+                        const newBooks: BookListRow[] = jsonData.map((row, index) => ({
+                            id: Date.now().toString() + index,
+                            layer: row['الطبقة'] || row['Layer'] || '',
+                            bookName: row['اسم الكتاب'] || row['Book Name'] || '',
+                            publisher: row['الناشر'] || row['Publisher'] || '',
+                            author: row['المؤلف'] || row['Author'] || '',
+                            year: row['السنة'] || row['Year'] || ''
+                        }));
+                        setBookList(newBooks);
+                    }
+                }
+
+                // Read Teaching Staff sheet
+                if (workbook.SheetNames.includes('Teaching Staff')) {
+                    const ws = workbook.Sheets['Teaching Staff'];
+                    const jsonData: any[] = XLSX.utils.sheet_to_json(ws);
+
+                    if (jsonData.length > 0) {
+                        const newStaff: TeachingStaffMember[] = jsonData.map((row, index) => ({
+                            id: Date.now().toString() + index,
+                            name: row['اسم المعلم'] || row['Name'] || '',
+                            email: row['البريد'] || row['Email'] || '',
+                            phone: row['الهاتف'] || row['Phone'] || '',
+                            lastTraining: row['آخر استكمال'] || row['Last Training'] || '',
+                            classes: row['الصفوف'] || row['Classes'] || ''
+                        }));
+                        setTeachingStaff(newStaff);
+                    }
+                }
+
+                alert('✅ تم استيراد البيانات من Excel بنجاح!');
+            } catch (error) {
+                console.error('Excel import error:', error);
+                alert('❌ حدث خطأ أثناء قراءة ملف Excel. تأكد من صحة الملف والصيغة.');
+            }
+        };
+        reader.readAsBinaryString(file);
+
+        // Reset file input
+        if (excelFileInputRef.current) {
+            excelFileInputRef.current.value = '';
+        }
+    };
+
+    // Excel Export Function
+    const handleExcelExport = () => {
+        try {
+            const wb = XLSX.utils.book_new();
+
+            // Export School Profile
+            const profileData = [
+                ['الصف', 'اسم المعلم', 'عدد الطلاب', 'ساعات تعليمية', 'ساعات فردية', 'متميزون', 'متعثرون', 'ملاحظات'],
+                ...schoolProfileTable.map(row => [
+                    row.className,
+                    row.teacherName,
+                    row.studentCount,
+                    row.teachingHours,
+                    row.individualHours,
+                    row.outstandingCount,
+                    row.strugglingCount,
+                    row.notes
+                ])
+            ];
+            const wsProfile = XLSX.utils.aoa_to_sheet(profileData);
+            XLSX.utils.book_append_sheet(wb, wsProfile, 'School Profile');
+
+            // Export Book List
+            const bookData = [
+                ['الطبقة', 'اسم الكتاب', 'الناشر', 'المؤلف', 'السنة'],
+                ...bookList.map(row => [
+                    row.layer,
+                    row.bookName,
+                    row.publisher,
+                    row.author,
+                    row.year
+                ])
+            ];
+            const wsBooks = XLSX.utils.aoa_to_sheet(bookData);
+            XLSX.utils.book_append_sheet(wb, wsBooks, 'Book List');
+
+            // Export Teaching Staff
+            const staffData = [
+                ['اسم المعلم', 'البريد', 'الهاتف', 'آخر استكمال', 'الصفوف'],
+                ...teachingStaff.map(row => [
+                    row.name,
+                    row.email,
+                    row.phone,
+                    row.lastTraining,
+                    row.classes
+                ])
+            ];
+            const wsStaff = XLSX.utils.aoa_to_sheet(staffData);
+            XLSX.utils.book_append_sheet(wb, wsStaff, 'Teaching Staff');
+
+            // Save file
+            XLSX.writeFile(wb, `annual_plan_${year}.xlsx`);
+            alert('✅ تم تصدير الخطة إلى Excel بنجاح!');
+        } catch (error) {
+            console.error('Excel export error:', error);
+            alert('❌ حدث خطأ أثناء تصدير البيانات.');
+        }
+    };
+
     const handleSave = async () => {
         if (!user) return;
         setSaving(true);
@@ -446,6 +591,41 @@ export default function EditPlanClient({ year }: { year: string }) {
                             <line x1="12" y1="15" x2="12" y2="3" />
                         </svg>
                         تنزيل PDF
+                    </button>
+
+                    {/* Hidden file input for Excel import */}
+                    <input
+                        type="file"
+                        ref={excelFileInputRef}
+                        onChange={handleExcelImport}
+                        accept=".xlsx,.xls"
+                        className="hidden"
+                    />
+
+                    {/* Excel Import Button */}
+                    <button
+                        onClick={() => excelFileInputRef.current?.click()}
+                        className="btn bg-purple-600 hover:bg-purple-700 text-white text-lg px-6 py-3 flex items-center gap-2 shadow-lg transition-transform hover:-translate-y-1"
+                    >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="17 8 12 3 7 8" />
+                            <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                        استيراد Excel
+                    </button>
+
+                    {/* Excel Export Button */}
+                    <button
+                        onClick={handleExcelExport}
+                        className="btn bg-indigo-600 hover:bg-indigo-700 text-white text-lg px-6 py-3 flex items-center gap-2 shadow-lg transition-transform hover:-translate-y-1"
+                    >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        تصدير Excel
                     </button>
                 </div>
             </div>

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@types/xlsx": "^0.0.35",
     "docx": "^9.5.1",
     "file-saver": "^2.0.5",
     "firebase": "^11.1.0",
