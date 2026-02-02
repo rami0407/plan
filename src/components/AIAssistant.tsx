@@ -83,7 +83,7 @@ export default function AIAssistant({ onClose, context, pageTitle, suggestions =
                         { role: 'system', content: 'أنت مساعد تربوي ذكي تتحدث العربية.' },
                         { role: 'user', content: prompt }
                     ],
-                    model: 'llama3-70b-8192',
+                    model: 'llama-3.3-70b-versatile',
                 });
                 responseText = completion.choices[0]?.message?.content || '';
             }
