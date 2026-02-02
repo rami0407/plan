@@ -2,13 +2,13 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
 export async function generateAIResponse(message: string, context: string) {
     if (!apiKey) {
         return {
             success: false,
-            error: 'API key is missing. Please add GOOGLE_GEMINI_API_KEY to your environment variables.'
+            error: 'API key is missing. Please add NEXT_PUBLIC_GEMINI_API_KEY to your environment variables.'
         };
     }
 
