@@ -29,7 +29,6 @@ export default function PlanningPage() {
     const router = useRouter();
     const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
     const [showAI, setShowAI] = useState(false);
-    const [showYearSelector, setShowYearSelector] = useState(false);
 
     const currentPlan = mockPlans.find(p => p.year === selectedYear);
 
@@ -102,40 +101,23 @@ export default function PlanningPage() {
                     ))}
                 </div>
 
-                {/* Year Selector Dropdown */}
-                <div className="relative">
-                    <button
-                        onClick={() => setShowYearSelector(!showYearSelector)}
-                        className="w-full p-4 bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-200 rounded-xl font-bold text-blue-700 hover:border-blue-400 transition-all flex items-center justify-center gap-2"
-                    >
+                {/* Year Selector Dropdown - Simple Select */}
+                <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
                         <span>📆</span>
-                        اختر سنة أخرى ({MIN_YEAR} - {MAX_YEAR})
-                        <svg className={`w-5 h-5 transition-transform ${showYearSelector ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </button>
-
-                    {showYearSelector && (
-                        <div className="absolute z-50 w-full mt-2 bg-gradient-to-b from-blue-50 to-white rounded-2xl shadow-2xl border-4 border-blue-300 max-h-96 overflow-y-auto">
-                            <div className="p-5 grid grid-cols-3 gap-4">
-                                {ALL_YEARS.map(year => (
-                                    <button
-                                        key={year}
-                                        onClick={() => {
-                                            setSelectedYear(year);
-                                            setShowYearSelector(false);
-                                        }}
-                                        className={`p-5 rounded-xl font-bold text-xl transition-all border-2 ${selectedYear === year
-                                            ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-xl scale-110 border-blue-800'
-                                            : 'bg-white text-blue-800 border-blue-300 hover:bg-gradient-to-r hover:from-blue-500 hover:to-blue-600 hover:text-white hover:scale-105 hover:shadow-lg hover:border-blue-500'
-                                            }`}
-                                    >
-                                        {year}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                        اختر سنة أخرى
+                    </label>
+                    <select
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(Number(e.target.value))}
+                        className="w-full p-4 bg-white border-2 border-blue-300 rounded-xl font-bold text-blue-700 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all cursor-pointer outline-none text-lg"
+                    >
+                        {ALL_YEARS.map(year => (
+                            <option key={year} value={year} className="text-lg">
+                                {year} / {year + 1}
+                            </option>
+                        ))}
+                    </select>
                 </div>
             </div>
 
