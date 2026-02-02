@@ -449,7 +449,10 @@ export default function EditPlanClient({ year }: { year: string }) {
     };
 
     const handleSave = async () => {
-        if (!user) return;
+        if (!user) {
+            alert('⚠️ يجب تسجيل الدخول أولاً لحفظ البيانات!\n\nالرجاء تسجيل الدخول والمحاولة مرة أخرى.');
+            return;
+        }
         setSaving(true);
         try {
             const planData = {
@@ -471,18 +474,24 @@ export default function EditPlanClient({ year }: { year: string }) {
                 goalsCount: goals.length,
                 tasksCount: goals.reduce((acc, g) => acc + g.tasks.length, 0)
             };
+
+            console.log('Saving plan data:', planData); // Debug log
             await setDoc(doc(db, 'annualPlans', `${year}_${user.uid}`), planData, { merge: true });
+            console.log('Save successful!'); // Debug log
             alert('✅ تم حفظ الخطة كمسودة بنجاح');
         } catch (error) {
             console.error("Error saving plan:", error);
-            alert('❌ حدث خطأ أثناء الحفظ');
+            alert('❌ حدث خطأ أثناء الحفظ: ' + (error as Error).message);
         } finally {
             setSaving(false);
         }
     };
 
     const handleSendForReview = async () => {
-        if (!user) return;
+        if (!user) {
+            alert('⚠️ يجب تسجيل الدخول أولاً لإرسال الخطة!\n\nالرجاء تسجيل الدخول والمحاولة مرة أخرى.');
+            return;
+        }
         if (!confirm('هل أنت متأكد من إرسال الخطة للمدير للمراجعة؟')) return;
         setSaving(true);
         try {
@@ -506,6 +515,8 @@ export default function EditPlanClient({ year }: { year: string }) {
                 goalsCount: goals.length,
                 tasksCount: goals.reduce((acc, g) => acc + g.tasks.length, 0)
             };
+
+            console.log('Sending plan for review:', planData); // Debug log
             await setDoc(doc(db, 'annualPlans', `${year}_${user.uid}`), planData, { merge: true });
 
             // 2. Create Notification for Principal
@@ -523,7 +534,7 @@ export default function EditPlanClient({ year }: { year: string }) {
             alert('🚀 تم إرسال الخطة للمدير بنجاح!');
         } catch (error) {
             console.error("Error submitting plan:", error);
-            alert('❌ حدث خطأ أثناء الإرسال');
+            alert('❌ حدث خطأ أثناء الإرسال: ' + (error as Error).message);
         } finally {
             setSaving(false);
         }
