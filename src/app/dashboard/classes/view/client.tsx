@@ -477,6 +477,131 @@ export default function ClassDetailsClient({ classId }: { classId: string }) {
                     </div>
                 )}
             </div>
+
+            {/* STATISTICAL ANALYSIS SECTION */}
+            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-3xl p-8 border border-blue-100 shadow-sm mt-8 relative">
+                <div className="absolute top-0 left-0 w-2 h-full bg-blue-500 opacity-50"></div>
+
+                <h3 className="text-2xl font-black text-blue-900 mb-6 flex items-center gap-3">
+                    <span>📊</span> التحليل الإحصائي للنتائج
+                </h3>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Overall Class Statistics */}
+                    <div className="bg-white rounded-2xl p-6 shadow-sm">
+                        <h4 className="font-bold text-gray-800 mb-4 text-lg">📈 إحصائيات عامة</h4>
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                <span className="text-gray-700 font-medium">عدد الطلاب</span>
+                                <span className="font-bold text-primary text-xl">{gridData.length}</span>
+                            </div>
+                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                <span className="text-gray-700 font-medium">عدد المواد</span>
+                                <span className="font-bold text-primary text-xl">{classData?.subjects?.length || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Performance Distribution */}
+                    <div className="bg-white rounded-2xl p-6 shadow-sm">
+                        <h4 className="font-bold text-gray-800 mb-4 text-lg">🎯 توزيع الأداء</h4>
+                        {(() => {
+                            const subjects = classData?.subjects || [];
+                            let totalRed = 0, totalYellow = 0, totalGreen = 0;
+
+                            subjects.forEach(subject => {
+                                gridData.forEach(student => {
+                                    const grade = Number(student.grades[subject]);
+                                    if (grade && grade >= 80) totalGreen++;
+                                    else if (grade && grade >= 55) totalYellow++;
+                                    else if (grade) totalRed++;
+                                });
+                            });
+
+                            const total = totalRed + totalYellow + totalGreen;
+
+                            return (
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg border border-red-200">
+                                        <span className="text-red-700 font-medium flex items-center gap-2">
+                                            <span className="w-3 h-3 bg-red-500 rounded-full"></span>
+                                            طلاب يحتاجون دعم (&lt;55)
+                                        </span>
+                                        <span className="font-bold text-red-700 text-xl">{totalRed}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                                        <span className="text-yellow-700 font-medium flex items-center gap-2">
+                                            <span className="w-3 h-3 bg-yellow-500 rounded-full"></span>
+                                            طلاب متوسطون (55-79)
+                                        </span>
+                                        <span className="font-bold text-yellow-700 text-xl">{totalYellow}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-200">
+                                        <span className="text-green-700 font-medium flex items-center gap-2">
+                                            <span className="w-3 h-3 bg-green-500 rounded-full"></span>
+                                            طلاب متفوقون (≥80)
+                                        </span>
+                                        <span className="font-bold text-green-700 text-xl">{totalGreen}</span>
+                                    </div>
+                                </div>
+                            );
+                        })()}
+                    </div>
+                </div>
+
+                {/* Subject-wise Statistics */}
+                <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm">
+                    <h4 className="font-bold text-gray-800 mb-4 text-lg">📚 إحصائيات المواد</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {(classData?.subjects || []).map(subject => {
+                            const grades = gridData
+                                .map(s => s.grades[subject])
+                                .filter(g => g !== undefined && g !== null && g !== '')
+                                .map(g => Number(g));
+
+                            if (grades.length === 0) return null;
+
+                            const avg = Math.round(grades.reduce((a, b) => a + b, 0) / grades.length);
+                            const max = Math.max(...grades);
+                            const min = Math.min(...grades);
+                            const passRate = Math.round((grades.filter(g => g >= 55).length / grades.length) * 100);
+
+                            const bgColor = avg >= 80 ? 'bg-green-50 border-green-200' : avg >= 70 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200';
+                            const textColor = avg >= 80 ? 'text-green-700' : avg >= 70 ? 'text-yellow-700' : 'text-red-700';
+
+                            return (
+                                <div key={subject} className={`p-4 rounded-xl border ${bgColor}`}>
+                                    <h5 className={`font-bold mb-3 ${textColor}`}>
+                                        {subject === 'Arabic' ? 'لغة عربية' :
+                                            subject === 'Hebrew' ? 'لغة عبرية' :
+                                                subject === 'Math' ? 'رياضيات' :
+                                                    subject === 'English' ? 'لغة إنجليزية' :
+                                                        subject === 'Science' ? 'علوم' : subject}
+                                    </h5>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">المعدل:</span>
+                                            <span className={`font-bold ${textColor}`}>{avg}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">الأعلى:</span>
+                                            <span className="font-semibold text-gray-700">{max}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">الأدنى:</span>
+                                            <span className="font-semibold text-gray-700">{min}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">نسبة النجاح:</span>
+                                            <span className="font-bold text-blue-600">{passRate}%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }
