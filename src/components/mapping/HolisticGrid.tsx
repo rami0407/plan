@@ -152,7 +152,8 @@ export default function HolisticGrid({ students: initialData, onUpdate, subjects
         const grades = students
             .map(s => s.grades[subject])
             .filter(g => g !== undefined && g !== null && g !== '')
-            .map(g => Number(g));
+            .map(g => Number(g))
+            .filter(g => !isNaN(g)); // ← Add this to filter out NaN!
 
         if (grades.length === 0) {
             return { avg: 0, min: 0, max: 0, passRate: 0, excellenceRate: 0, count: 0 };
@@ -286,7 +287,7 @@ export default function HolisticGrid({ students: initialData, onUpdate, subjects
                                         type="number"
                                         className={styles.input}
                                         style={{ width: '60px', textAlign: 'center' }}
-                                        value={student.absences}
+                                        value={(student.absences !== undefined && !isNaN(Number(student.absences))) ? student.absences : 0}
                                         onChange={(e) => handleChange(student.id, 'absences', Number(e.target.value))}
                                     />
                                 </td>

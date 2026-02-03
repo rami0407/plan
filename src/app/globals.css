@@ -4,6 +4,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Handsontable Spreadsheet Styles */
+@import 'handsontable/dist/handsontable.full.min.css';
+
 :root {
   --primary: #2D5DA1;
   --primary-dark: #1a365d;
@@ -507,16 +510,17 @@ body {
 }
 
 .animate-slide-in-left {
-    animation: slideInLeft 0.3s ease-out forwards;
+  animation: slideInLeft 0.3s ease-out forwards;
 }
 
 @keyframes slideInLeft {
-    from {
-        opacity: 0;
-        transform: translateX(-100%);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
