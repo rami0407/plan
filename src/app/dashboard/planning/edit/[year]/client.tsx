@@ -307,126 +307,200 @@ export default function EditPlanClient({ year }: { year: string }) {
         window.print();
     };
 
-    // Excel Import Function
-    const handleExcelImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-        alert('🔵 TEST: Function called!');
-        console.log('🔵 Excel Import: Function called');
-        const file = e.target.files?.[0];
-        if (!file) {
-            console.log('❌ Excel Import: No file selected');
-            alert('❌ TEST: No file!');
-            return;
+    // Excel Import Version Detection
+    useEffect(() => {
+        const EXCEL_IMPORT_VERSION = '2026.02.03.001';
+        const storedVersion = localStorage.getItem('excelImportVersion');
+
+        if (storedVersion !== EXCEL_IMPORT_VERSION) {
+            console.warn('🔄 Excel Import: New version detected!', {
+                stored: storedVersion,
+                current: EXCEL_IMPORT_VERSION
+            });
+            localStorage.setItem('excelImportVersion', EXCEL_IMPORT_VERSION);
         }
+    }, []);
 
-        alert(`✅ TEST: File selected: ${file.name}`);
-        console.log('✅ Excel Import: File selected:', file.name, 'Size:', file.size, 'bytes');
+    // Excel Import Function with Enhanced Error Handling
+    const handleExcelImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+        console.group('📊 Excel Import Process');
+        console.log('⏰ Timestamp:', new Date().toISOString());
+        console.log('🔵 Version: 2026.02.03.001');
 
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-            try {
-                console.log('🔵 Excel Import: FileReader loaded');
-                const data = evt.target?.result;
-                const workbook = XLSX.read(data, { type: 'binary' });
+        try {
+            const file = e.target.files?.[0];
 
-                console.log('📊 Excel Import: Workbook loaded. Sheets:', workbook.SheetNames);
-
-                let importedCount = 0;
-
-                // Read School Profile sheet
-                if (workbook.SheetNames.includes('School Profile')) {
-                    console.log('🔵 Processing School Profile sheet...');
-                    const ws = workbook.Sheets['School Profile'];
-                    const jsonData: any[] = XLSX.utils.sheet_to_json(ws);
-                    console.log('📄 School Profile rows:', jsonData.length);
-
-                    if (jsonData.length > 0) {
-                        const newProfiles: SchoolProfileRow[] = jsonData.map((row, index) => ({
-                            id: Date.now().toString() + index,
-                            className: row['الصف'] || row['Class'] || '',
-                            teacherName: row['اسم المعلم'] || row['Teacher Name'] || '',
-                            studentCount: Number(row['عدد الطلاب']) || Number(row['Students']) || 0,
-                            teachingHours: Number(row['ساعات تعليمية']) || Number(row['Teaching Hours']) || 0,
-                            individualHours: Number(row['ساعات فردية']) || Number(row['Individual Hours']) || 0,
-                            outstandingCount: Number(row['متميزون']) || Number(row['Outstanding']) || 0,
-                            strugglingCount: Number(row['متعثرون']) || Number(row['Struggling']) || 0,
-                            notes: row['ملاحظات'] || row['Notes'] || ''
-                        }));
-                        setSchoolProfileTable(newProfiles);
-                        importedCount++;
-                        console.log('✅ School Profile imported:', newProfiles.length, 'rows');
-                    }
-                } else {
-                    console.log('⚠️ School Profile sheet not found');
-                }
-
-                // Read Book List sheet
-                if (workbook.SheetNames.includes('Book List')) {
-                    console.log('🔵 Processing Book List sheet...');
-                    const ws = workbook.Sheets['Book List'];
-                    const jsonData: any[] = XLSX.utils.sheet_to_json(ws);
-                    console.log('📄 Book List rows:', jsonData.length);
-
-                    if (jsonData.length > 0) {
-                        const newBooks: BookListRow[] = jsonData.map((row, index) => ({
-                            id: Date.now().toString() + index,
-                            layer: row['الطبقة'] || row['Layer'] || '',
-                            bookName: row['اسم الكتاب'] || row['Book Name'] || '',
-                            publisher: row['الناشر'] || row['Publisher'] || '',
-                            author: row['المؤلف'] || row['Author'] || '',
-                            year: row['السنة'] || row['Year'] || ''
-                        }));
-                        setBookList(newBooks);
-                        importedCount++;
-                        console.log('✅ Book List imported:', newBooks.length, 'rows');
-                    }
-                } else {
-                    console.log('⚠️ Book List sheet not found');
-                }
-
-                // Read Teaching Staff sheet
-                if (workbook.SheetNames.includes('Teaching Staff')) {
-                    console.log('🔵 Processing Teaching Staff sheet...');
-                    const ws = workbook.Sheets['Teaching Staff'];
-                    const jsonData: any[] = XLSX.utils.sheet_to_json(ws);
-                    console.log('📄 Teaching Staff rows:', jsonData.length);
-
-                    if (jsonData.length > 0) {
-                        const newStaff: TeachingStaffMember[] = jsonData.map((row, index) => ({
-                            id: Date.now().toString() + index,
-                            name: row['اسم المعلم'] || row['Name'] || '',
-                            email: row['البريد'] || row['Email'] || '',
-                            phone: row['الهاتف'] || row['Phone'] || '',
-                            lastTraining: row['آخر استكمال'] || row['Last Training'] || '',
-                            classes: row['الصفوف'] || row['Classes'] || ''
-                        }));
-                        setTeachingStaff(newStaff);
-                        importedCount++;
-                        console.log('✅ Teaching Staff imported:', newStaff.length, 'rows');
-                    }
-                } else {
-                    console.log('⚠️ Teaching Staff sheet not found');
-                }
-
-                if (importedCount > 0) {
-                    alert(`✅ تم استيراد البيانات من Excel بنجاح!\n\nتم استيراد ${importedCount} جدول/جداول.\n\n⚠️ لا تنسَ الحفظ للاحتفاظ بالتغييرات!`);
-                    console.log('✅ Excel Import: Complete! Imported', importedCount, 'tables');
-                } else {
-                    alert('⚠️ لم يتم العثور على أي جداول!\n\nتأكد من وجود sheets بأسماء:\n- School Profile\n- Book List\n- Teaching Staff');
-                    console.log('⚠️ Excel Import: No tables found in workbook');
-                }
-            } catch (error) {
-                console.error('❌ Excel import error:', error);
-                alert('❌ حدث خطأ أثناء قراءة ملف Excel.\n\nتأكد من صحة الملف والصيغة.\n\nافتح Console (F12) لمزيد من التفاصيل.');
+            if (!file) {
+                console.warn('❌ No file selected by user');
+                console.groupEnd();
+                return;
             }
-        };
 
-        reader.onerror = (error) => {
-            console.error('❌ FileReader error:', error);
-            alert('❌ حدث خطأ أثناء قراءة الملف.');
-        };
+            // File validation
+            console.log('📁 File Details:', {
+                name: file.name,
+                size: `${(file.size / 1024).toFixed(2)} KB`,
+                type: file.type,
+                lastModified: new Date(file.lastModified).toLocaleString('ar-EG')
+            });
 
-        console.log('🔵 Excel Import: Starting to read file...');
-        reader.readAsBinaryString(file);
+            // Validate file type
+            if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+                console.error('❌ Invalid file type:', file.type);
+                alert('❌ نوع الملف غير صحيح!\n\nيرجى اختيار ملف Excel (.xlsx أو .xls)\n\nالملف المختار: ' + file.name);
+                console.groupEnd();
+                e.target.value = ''; // Reset input
+                return;
+            }
+
+            console.log('✅ File validation passed');
+            console.log('🔄 Starting FileReader...');
+
+            const reader = new FileReader();
+
+            reader.onerror = (error) => {
+                console.error('❌ FileReader Error:', error);
+                alert('❌ حدث خطأ أثناء قراءة الملف!\n\nيرجى المحاولة مرة أخرى أو اختيار ملف آخر.');
+                console.groupEnd();
+            };
+
+            reader.onload = (evt) => {
+                try {
+                    console.log('✅ FileReader loaded successfully');
+                    const data = evt.target?.result;
+
+                    if (!data) {
+                        throw new Error('No data from FileReader');
+                    }
+
+                    console.log('📖 Reading workbook...');
+                    const workbook = XLSX.read(data, { type: 'binary' });
+
+                    console.log('📊 Workbook loaded:', {
+                        sheets: workbook.SheetNames,
+                        sheetCount: workbook.SheetNames.length
+                    });
+
+                    let importedCount = 0;
+                    const results = [];
+
+                    // Read School Profile sheet
+                    if (workbook.SheetNames.includes('School Profile')) {
+                        console.group('🏫 Processing School Profile');
+                        const ws = workbook.Sheets['School Profile'];
+                        const jsonData: any[] = XLSX.utils.sheet_to_json(ws);
+                        console.log(`📄 Found ${jsonData.length} rows`);
+
+                        if (jsonData.length > 0) {
+                            const newProfiles: SchoolProfileRow[] = jsonData.map((row, index) => ({
+                                id: Date.now().toString() + index,
+                                className: row['الصف'] || row['Class'] || '',
+                                teacherName: row['اسم المعلم'] || row['Teacher Name'] || '',
+                                studentCount: Number(row['عدد الطلاب']) || Number(row['Students']) || 0,
+                                teachingHours: Number(row['ساعات تعليمية']) || Number(row['Teaching Hours']) || 0,
+                                individualHours: Number(row['ساعات فردية']) || Number(row['Individual Hours']) || 0,
+                                outstandingCount: Number(row['متميزون']) || Number(row['Outstanding']) || 0,
+                                strugglingCount: Number(row['متعثرون']) || Number(row['Struggling']) || 0,
+                                notes: row['ملاحظات'] || row['Notes'] || ''
+                            }));
+                            setSchoolProfileTable(newProfiles);
+                            importedCount++;
+                            results.push(`School Profile: ${newProfiles.length} صفوف`);
+                            console.log('✅ Imported:', newProfiles);
+                        }
+                        console.groupEnd();
+                    } else {
+                        console.warn('⚠️ Sheet "School Profile" not found');
+                    }
+
+
+                    // Read Book List sheet
+                    if (workbook.SheetNames.includes('Book List')) {
+                        console.group('📚 Processing Book List');
+                        const ws = workbook.Sheets['Book List'];
+                        const jsonData: any[] = XLSX.utils.sheet_to_json(ws);
+                        console.log(`📄 Found ${jsonData.length} rows`);
+
+                        if (jsonData.length > 0) {
+                            const newBooks: BookListRow[] = jsonData.map((row, index) => ({
+                                id: Date.now().toString() + index,
+                                layer: row['الطبقة'] || row['Layer'] || '',
+                                bookName: row['اسم الكتاب'] || row['Book Name'] || '',
+                                publisher: row['الناشر'] || row['Publisher'] || '',
+                                author: row['المؤلف'] || row['Author'] || '',
+                                year: row['السنة'] || row['Year'] || ''
+                            }));
+                            setBookList(newBooks);
+                            importedCount++;
+                            results.push(`Book List: ${newBooks.length} كتب`);
+                            console.log('✅ Imported:', newBooks);
+                        }
+                        console.groupEnd();
+                    } else {
+                        console.warn('⚠️ Sheet "Book List" not found');
+                    }
+
+
+                    // Read Teaching Staff sheet
+                    if (workbook.SheetNames.includes('Teaching Staff')) {
+                        console.group('👥 Processing Teaching Staff');
+                        const ws = workbook.Sheets['Teaching Staff'];
+                        const jsonData: any[] = XLSX.utils.sheet_to_json(ws);
+                        console.log(`📄 Found ${jsonData.length} rows`);
+
+                        if (jsonData.length > 0) {
+                            const newStaff: TeachingStaffMember[] = jsonData.map((row, index) => ({
+                                id: Date.now().toString() + index,
+                                name: row['اسم المعلم'] || row['Name'] || '',
+                                email: row['البريد'] || row['Email'] || '',
+                                phone: row['الهاتف'] || row['Phone'] || '',
+                                lastTraining: row['آخر استكمال'] || row['Last Training'] || '',
+                                classes: row['الصفوف'] || row['Classes'] || ''
+                            }));
+                            setTeachingStaff(newStaff);
+                            importedCount++;
+                            results.push(`Teaching Staff: ${newStaff.length} معلمين`);
+                            console.log('✅ Imported:', newStaff);
+                        }
+                        console.groupEnd();
+                    } else {
+                        console.warn('⚠️ Sheet "Teaching Staff" not found');
+                    }
+
+
+                    // Final results
+                    if (importedCount > 0) {
+                        const resultMessage = `✅ تم استيراد البيانات بنجاح!\n\n${results.join('\n')}\n\n⚠️ لا تنسَ الضغط على "حفظ كمسودة" للاحتفاظ بالتغييرات!`;
+                        console.log('🎉 Import successful!', {
+                            tablesImported: importedCount,
+                            details: results
+                        });
+                        alert(resultMessage);
+                    } else {
+                        const errorMessage = '⚠️ لم يتم العثور على أي جداول!\n\nيرجى التحقق من:\n\n1. أسماء Sheets يجب أن تكون:\n   • School Profile\n   • Book List\n   • Teaching Staff\n\n2. كل sheet يحتوي على بيانات\n\n3. الصف الأول يحتوي على أسماء الأعمدة';
+                        console.warn('⚠️ No sheets imported');
+                        alert(errorMessage);
+                    }
+
+                    console.groupEnd();
+                } catch (error) {
+                    console.error('❌ Error processing Excel:', error);
+                    console.groupEnd();
+                    alert(`❌ حدث خطأ أثناء قراءة ملف Excel!\n\nالخطأ: ${(error as Error).message}\n\nيرجى:\n1. التحقق من صيغة الملف (.xlsx)\n2. التأكد من أسماء Sheets الصحيحة\n3. فتح Console (F12) لمزيد من التفاصيل`);
+                }
+            };
+
+            console.log('📖 Reading file as binary...');
+            reader.readAsBinaryString(file);
+
+        } catch (error) {
+            console.error('❌ Fatal error in handleExcelImport:', error);
+            console.groupEnd();
+            alert(`❌ حدث خطأ غير متوقع!\n\n${(error as Error).message}\n\nيرجى إعادة المحاولة أو التواصل مع الدعم الفني.`);
+        } finally {
+            // Reset input to allow re-importing same file
+            e.target.value = '';
+        }
     };
 
     // Excel Export Function
