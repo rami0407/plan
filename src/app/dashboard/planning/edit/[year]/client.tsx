@@ -309,24 +309,37 @@ export default function EditPlanClient({ year }: { year: string }) {
 
     // Excel Import Function
     const handleExcelImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+        console.log('🔵 Excel Import: Function called');
         const file = e.target.files?.[0];
-        if (!file) return;
+        if (!file) {
+            console.log('❌ Excel Import: No file selected');
+            return;
+        }
+
+        console.log('✅ Excel Import: File selected:', file.name, 'Size:', file.size, 'bytes');
 
         const reader = new FileReader();
         reader.onload = (evt) => {
             try {
+                console.log('🔵 Excel Import: FileReader loaded');
                 const data = evt.target?.result;
                 const workbook = XLSX.read(data, { type: 'binary' });
 
+                console.log('📊 Excel Import: Workbook loaded. Sheets:', workbook.SheetNames);
+
+                let importedCount = 0;
+
                 // Read School Profile sheet
                 if (workbook.SheetNames.includes('School Profile')) {
+                    console.log('🔵 Processing School Profile sheet...');
                     const ws = workbook.Sheets['School Profile'];
                     const jsonData: any[] = XLSX.utils.sheet_to_json(ws);
+                    console.log('📄 School Profile rows:', jsonData.length);
 
                     if (jsonData.length > 0) {
                         const newProfiles: SchoolProfileRow[] = jsonData.map((row, index) => ({
                             id: Date.now().toString() + index,
-                            className: row['الصف'] || row['Classא'] || '',
+                            className: row['الصف'] || row['Class'] || '',
                             teacherName: row['اسم المعلم'] || row['Teacher Name'] || '',
                             studentCount: Number(row['عدد الطلاب']) || Number(row['Students']) || 0,
                             teachingHours: Number(row['ساعات تعليمية']) || Number(row['Teaching Hours']) || 0,
@@ -336,13 +349,19 @@ export default function EditPlanClient({ year }: { year: string }) {
                             notes: row['ملاحظات'] || row['Notes'] || ''
                         }));
                         setSchoolProfileTable(newProfiles);
+                        importedCount++;
+                        console.log('✅ School Profile imported:', newProfiles.length, 'rows');
                     }
+                } else {
+                    console.log('⚠️ School Profile sheet not found');
                 }
 
                 // Read Book List sheet
                 if (workbook.SheetNames.includes('Book List')) {
+                    console.log('🔵 Processing Book List sheet...');
                     const ws = workbook.Sheets['Book List'];
                     const jsonData: any[] = XLSX.utils.sheet_to_json(ws);
+                    console.log('📄 Book List rows:', jsonData.length);
 
                     if (jsonData.length > 0) {
                         const newBooks: BookListRow[] = jsonData.map((row, index) => ({
@@ -354,13 +373,19 @@ export default function EditPlanClient({ year }: { year: string }) {
                             year: row['السنة'] || row['Year'] || ''
                         }));
                         setBookList(newBooks);
+                        importedCount++;
+                        console.log('✅ Book List imported:', newBooks.length, 'rows');
                     }
+                } else {
+                    console.log('⚠️ Book List sheet not found');
                 }
 
                 // Read Teaching Staff sheet
                 if (workbook.SheetNames.includes('Teaching Staff')) {
+                    console.log('🔵 Processing Teaching Staff sheet...');
                     const ws = workbook.Sheets['Teaching Staff'];
                     const jsonData: any[] = XLSX.utils.sheet_to_json(ws);
+                    console.log('📄 Teaching Staff rows:', jsonData.length);
 
                     if (jsonData.length > 0) {
                         const newStaff: TeachingStaffMember[] = jsonData.map((row, index) => ({
@@ -372,15 +397,32 @@ export default function EditPlanClient({ year }: { year: string }) {
                             classes: row['الصفوف'] || row['Classes'] || ''
                         }));
                         setTeachingStaff(newStaff);
+                        importedCount++;
+                        console.log('✅ Teaching Staff imported:', newStaff.length, 'rows');
                     }
+                } else {
+                    console.log('⚠️ Teaching Staff sheet not found');
                 }
 
-                alert('✅ تم استيراد البيانات من Excel بنجاح!');
+                if (importedCount > 0) {
+                    alert(`✅ تم استيراد البيانات من Excel بنجاح!\n\nتم استيراد ${importedCount} جدول/جداول.\n\n⚠️ لا تنسَ الحفظ للاحتفاظ بالتغييرات!`);
+                    console.log('✅ Excel Import: Complete! Imported', importedCount, 'tables');
+                } else {
+                    alert('⚠️ لم يتم العثور على أي جداول!\n\nتأكد من وجود sheets بأسماء:\n- School Profile\n- Book List\n- Teaching Staff');
+                    console.log('⚠️ Excel Import: No tables found in workbook');
+                }
             } catch (error) {
-                console.error('Excel import error:', error);
-                alert('❌ حدث خطأ أثناء قراءة ملف Excel. تأكد من صحة الملف والصيغة.');
+                console.error('❌ Excel import error:', error);
+                alert('❌ حدث خطأ أثناء قراءة ملف Excel.\n\nتأكد من صحة الملف والصيغة.\n\nافتح Console (F12) لمزيد من التفاصيل.');
             }
         };
+
+        reader.onerror = (error) => {
+            console.error('❌ FileReader error:', error);
+            alert('❌ حدث خطأ أثناء قراءة الملف.');
+        };
+
+        console.log('🔵 Excel Import: Starting to read file...');
         reader.readAsBinaryString(file);
     };
 
