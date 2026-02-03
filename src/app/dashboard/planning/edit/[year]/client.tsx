@@ -670,7 +670,7 @@ export default function EditPlanClient({ year }: { year: string }) {
                     <input
                         type="file"
                         ref={excelFileInputRef}
-                        onChange={handleExcelImport}
+                        onChange={handleExcelUpload2026}
                         accept=".xlsx,.xls"
                         className="hidden"
                     />
