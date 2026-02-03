@@ -382,11 +382,6 @@ export default function EditPlanClient({ year }: { year: string }) {
             }
         };
         reader.readAsBinaryString(file);
-
-        // Reset file input
-        if (excelFileInputRef.current) {
-            excelFileInputRef.current.value = '';
-        }
     };
 
     // Excel Export Function
