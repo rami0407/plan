@@ -307,10 +307,10 @@ export default function EditPlanClient({ year }: { year: string }) {
         window.print();
     };
 
-    // Excel Import Function
-    const handleExcelImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-        alert('🔵 TEST: Function called!');
-        console.log('🔵 Excel Import: Function called');
+    // Excel Upload Function v2026 - CACHE BUSTER!
+    const handleExcelUpload2026 = (e: React.ChangeEvent<HTMLInputElement>) => {
+        alert('🎉 НОВАЯ VERSION! Function called!');
+        console.log('🔵 Excel Import v2026: Function called');
         const file = e.target.files?.[0];
         if (!file) {
             console.log('❌ Excel Import: No file selected');
@@ -614,14 +614,14 @@ export default function EditPlanClient({ year }: { year: string }) {
                     <input
                         type="file"
                         accept=".xlsx,.xls"
-                        onChange={handleExcelImport}
+                        onChange={handleExcelUpload2026}
                         className="hidden"
-                        id="excel-import-input"
+                        id="excel-upload-2026-input"
                     />
 
                     {/* Import Excel Button */}
                     <label
-                        htmlFor="excel-import-input"
+                        htmlFor="excel-upload-2026-input"
                         className="btn bg-purple-600 hover:bg-purple-700 text-white text-lg px-6 py-3 flex items-center gap-2 shadow-lg transition-transform hover:-translate-y-1 cursor-pointer"
                     >
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
