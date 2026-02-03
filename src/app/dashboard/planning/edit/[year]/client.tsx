@@ -570,6 +570,28 @@ export default function EditPlanClient({ year }: { year: string }) {
 
                 {/* Action Buttons */}
                 <div className="flex gap-4">
+                    {/* Hidden File Input */}
+                    <input
+                        type="file"
+                        accept=".xlsx,.xls"
+                        onChange={handleExcelImport}
+                        className="hidden"
+                        id="excel-import-input"
+                    />
+
+                    {/* Import Excel Button */}
+                    <label
+                        htmlFor="excel-import-input"
+                        className="btn bg-purple-600 hover:bg-purple-700 text-white text-lg px-6 py-3 flex items-center gap-2 shadow-lg transition-transform hover:-translate-y-1 cursor-pointer"
+                    >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" x2="12" y1="15" y2="3"></line>
+                        </svg>
+                        استيراد Excel
+                    </label>
+
                     <button
                         onClick={handleSendForReview}
                         disabled={saving}
