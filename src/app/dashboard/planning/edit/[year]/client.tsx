@@ -309,13 +309,16 @@ export default function EditPlanClient({ year }: { year: string }) {
 
     // Excel Import Function
     const handleExcelImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+        alert('🔵 TEST: Function called!');
         console.log('🔵 Excel Import: Function called');
         const file = e.target.files?.[0];
         if (!file) {
             console.log('❌ Excel Import: No file selected');
+            alert('❌ TEST: No file!');
             return;
         }
 
+        alert(`✅ TEST: File selected: ${file.name}`);
         console.log('✅ Excel Import: File selected:', file.name, 'Size:', file.size, 'bytes');
 
         const reader = new FileReader();
