@@ -54,6 +54,14 @@ const TagInput = ({ value, onChange, placeholder }: { value: string, onChange: (
 export default function InterventionPage() {
     const router = useRouter();
     const { user } = useAuth();
+    const searchParams = useSearchParams();
+
+    // In a real app, we might check if user is admin before allowing query param override. 
+    // For now, if param exists, use it (Principal view), else use logged-in user (Coordinator view).
+    const paramCoordinatorId = searchParams.get('coordinatorId');
+    const paramYear = searchParams.get('year');
+    const effectiveCoordinatorId = paramCoordinatorId || user?.uid;
+
     const [managerFeedback, setManagerFeedback] = useState('');
 
     const currentYear = new Date().getFullYear();
@@ -97,13 +105,6 @@ export default function InterventionPage() {
             alert('❌ حدث خطأ أثناء الإرسال');
         }
     };
-
-    const searchParams = useSearchParams();
-    // In a real app, we might check if user is admin before allowing query param override. 
-    // For now, if param exists, use it (Principal view), else use logged-in user (Coordinator view).
-    const paramCoordinatorId = searchParams.get('coordinatorId');
-    const paramYear = searchParams.get('year');
-    const effectiveCoordinatorId = paramCoordinatorId || user?.uid;
 
     useEffect(() => {
         if (paramYear) {
