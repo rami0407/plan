@@ -27,6 +27,9 @@ function ProtocolsContent() {
     const [activeTab, setActiveTab] = useState<'new' | 'drafts' | 'sent'>('new');
     const [editingProtocol, setEditingProtocol] = useState<MeetingProtocol | null>(null);
 
+    const [selectedYear, setSelectedYear] = useState<string>('2026');
+    const years = Array.from({ length: 15 }, (_, i) => (2026 + i).toString());
+
     useEffect(() => {
         if (effectiveCoordinatorId) {
             loadProtocols();
@@ -55,6 +58,7 @@ function ProtocolsContent() {
     const handleNewProtocol = () => {
         const newProtocol: Omit<MeetingProtocol, 'id'> = {
             coordinatorId: effectiveCoordinatorId!,
+            year: selectedYear,
             date: new Date().toISOString().split('T')[0],
             type: 'staff',
             participants: '',
@@ -122,6 +126,10 @@ function ProtocolsContent() {
     };
 
     const filteredProtocols = meetingProtocols.filter(p => {
+        // Filter by year: if p.year exists check match, else match if selectedYear is 2026 (default)
+        const protocolYear = p.year || '2026';
+        if (protocolYear !== selectedYear) return false;
+
         if (activeTab === 'drafts') return p.status === 'draft';
         if (activeTab === 'sent') return p.status === 'sent';
         return false;
@@ -135,12 +143,24 @@ function ProtocolsContent() {
                     <h1 className="text-3xl font-black mb-2">بروتوكولات الجلسات</h1>
                     <p className="text-gray-500 text-lg">نظام توثيق الاجتماعات والملفات</p>
                 </div>
-                <button
-                    onClick={() => setShowAI(true)}
-                    className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold shadow-lg hover:scale-105 transition-all flex items-center gap-2 animate-pulse"
-                >
-                    <span>✨</span> المساعد الذكي
-                </button>
+                <div className="flex gap-4 items-center">
+                    <div className="flex flex-col">
+                        <label className="text-xs font-bold text-gray-500 mb-1">السنة الدراسية</label>
+                        <select
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(e.target.value)}
+                            className="px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none bg-white font-bold text-gray-700"
+                        >
+                            {years.map(y => <option key={y} value={y}>{y}</option>)}
+                        </select>
+                    </div>
+                    <button
+                        onClick={() => setShowAI(true)}
+                        className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold shadow-lg hover:scale-105 transition-all flex items-center gap-2 animate-pulse"
+                    >
+                        <span>✨</span> المساعد الذكي
+                    </button>
+                </div>
             </div>
 
             {/* Tabs */}

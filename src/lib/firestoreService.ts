@@ -469,6 +469,7 @@ export const markNotificationRead = async (id: string) => {
 export interface MeetingProtocol {
     id?: string;
     coordinatorId: string;
+    year?: string;
     date: string;
     type: 'principal' | 'staff' | 'counselor';
     participants: string;
