@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -13,7 +13,7 @@ import {
 } from '@/lib/firestoreService';
 import AIAssistant from '@/components/AIAssistant';
 
-export default function ProtocolsPage() {
+function ProtocolsContent() {
     const { user } = useAuth();
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -73,7 +73,7 @@ export default function ProtocolsPage() {
         }
     };
 
-    const updateMeetingProtocolState = (id: string, field: keyof MeetingProtocol, value: string) => {
+    const updateMeetingProtocolState = (id: string, field: keyof MeetingProtocol, value: any) => {
         setMeetingProtocols(protocols => protocols.map(p =>
             p.id === id ? { ...p, [field]: value } : p
         ));
@@ -407,3 +407,12 @@ export default function ProtocolsPage() {
         </div>
     );
 }
+
+export default function ProtocolsPage() {
+    return (
+        <Suspense fallback={<div className="p-8 text-center text-gray-500">جاري تحميل البروتوكولات...</div>}>
+            <ProtocolsContent />
+        </Suspense>
+    );
+}
+
