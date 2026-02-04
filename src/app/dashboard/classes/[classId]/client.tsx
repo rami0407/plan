@@ -291,113 +291,329 @@ export default function ClassEditorClient({ classId }: ClassEditorClientProps) {
                     </div>
                 </div>
 
-                {/* Data Analysis Section */}
-                <div className="bg-white rounded-2xl shadow-lg p-6 mt-6">
-                    <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                        <span>📊</span>
-                        تحليل المعطيات
-                    </h3>
+                {/* Comprehensive Data Analysis Section */}
+                <AdvancedAnalytics data={data} className={className} quarter={selectedQuarter} />
 
-                    {/* Statistics Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-5 rounded-xl border-2 border-blue-200">
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm font-medium text-gray-700">إجمالي الخلايا</span>
-                                <span className="text-3xl">📝</span>
+            </div>
+        </div>
+        </div >
+    );
+}
+
+// Advanced Analytics Component  
+function AdvancedAnalytics({ data, className, quarter }: { data: any[][]; className: string; quarter: string }) {
+    if (!data || data.length === 0) {
+        return (
+            <div className="bg-white rounded-2xl shadow-lg p-8 mt-6 text-center">
+                <div className="text-6xl mb-4">📊</div>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">لا توجد بيانات للتحليل</h3>
+                <p className="text-gray-600">قم برفع ملف Excel أو أدخل البيانات في الجدول أعلاه</p>
+            </div>
+        );
+    }
+
+    //  Extract data structure (assuming first row is headers)
+    const headers = data[0] || [];
+    const rows = data.slice(1);
+
+    // Find numeric columns (subjects/grades)
+    const numericColumns: number[] = [];
+    headers.forEach((header, idx) => {
+        if (idx > 0) { // Skip first column (names)
+            const columnValues = rows.map(row => row[idx]);
+            const hasNumbers = columnValues.some(val => !isNaN(Number(val)) && val !== '' && val !== null);
+            if (hasNumbers) numericColumns.push(idx);
+        }
+    });
+
+    // Calculate student statistics
+    const studentStats = rows.map((row, idx) => {
+        const studentName = row[0] || `طالب ${idx + 1}`;
+        const grades = numericColumns.map(colIdx => Number(row[colIdx])).filter(g => !isNaN(g) && g > 0);
+        const average = grades.length > 0 ? grades.reduce((a, b) => a + b, 0) / grades.length : 0;
+        const max = grades.length > 0 ? Math.max(...grades) : 0;
+        const min = grades.length > 0 ? Math.min(...grades) : 0;
+
+        return {
+            name: studentName,
+            average,
+            max,
+            min,
+            count: grades.length,
+            grades
+        };
+    }).filter(s => s.count > 0);
+
+    // Calculate subject statistics
+    const subjectStats = numericColumns.map(colIdx => {
+        const subjectName = headers[colIdx] || `مادة ${colIdx}`;
+        const grades = rows.map(row => Number(row[colIdx])).filter(g => !isNaN(g) && g > 0);
+        const average = grades.length > 0 ? grades.reduce((a, b) => a + b, 0) / grades.length : 0;
+        const max = grades.length > 0 ? Math.max(...grades) : 0;
+        const min = grades.length > 0 ? Math.min(...grades) : 0;
+        const passing = grades.filter(g => g >= 55).length;
+        const failing = grades.filter(g => g < 55).length;
+
+        return {
+            name: subjectName,
+            average,
+            max,
+            min,
+            count: grades.length,
+            passing,
+            failing,
+            passingRate: grades.length > 0 ? (passing / grades.length) * 100 : 0
+        };
+    });
+
+    // Overall statistics
+    const allGrades = studentStats.flatMap(s => s.grades);
+    const overallAverage = allGrades.length > 0 ? allGrades.reduce((a, b) => a + b, 0) / allGrades.length : 0;
+    const topStudent = studentStats.length > 0 ? studentStats.reduce((max, s) => s.average > max.average ? s : max) : null;
+    const strugglingStudents = studentStats.filter(s => s.average < 55);
+    const excellentStudents = studentStats.filter(s => s.average >= 90);
+
+    // Grade distribution
+    const gradeRanges = [
+        { label: 'ممتاز (90-100)', min: 90, max: 100, count: 0, color: 'bg-green-500' },
+        { label: 'جيد جداً (80-89)', min: 80, max: 89, count: 0, color: 'bg-blue-500' },
+        { label: 'جيد (70-79)', min: 70, max: 79, count: 0, color: 'bg-yellow-500' },
+        { label: 'مقبول (55-69)', min: 55, max: 69, count: 0, color: 'bg-orange-500' },
+        { label: 'راسب (<55)', min: 0, max: 54, count: 0, color: 'bg-red-500' }
+    ];
+
+    allGrades.forEach(grade => {
+        const range = gradeRanges.find(r => grade >= r.min && grade <= r.max);
+        if (range) range.count++;
+    });
+
+    return (
+        <div className="bg-white rounded-2xl shadow-lg p-6 mt-6">
+            <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <span>📊</span>
+                لوحة التحليلات الشاملة - {className}
+            </h3>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl border-2 border-blue-200">
+                    <div className="text-sm text-gray-600 mb-1">عدد الطلاب</div>
+                    <div className="text-3xl font-black text-blue-700">{studentStats.length}</div>
+                </div>
+                <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl border-2 border-green-200">
+                    <div className="text-sm text-gray-600 mb-1">المعدل العام</div>
+                    <div className="text-3xl font-black text-green-700">{overallAverage.toFixed(1)}</div>
+                </div>
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl border-2 border-purple-200">
+                    <div className="text-sm text-gray-600 mb-1">عدد المواد</div>
+                    <div className="text-3xl font-black text-purple-700">{subjectStats.length}</div>
+                </div>
+                <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-xl border-2 border-orange-200">
+                    <div className="text-sm text-gray-600 mb-1">متفوقون</div>
+                    <div className="text-3xl font-black text-orange-700">{excellentStudents.length}</div>
+                </div>
+            </div>
+
+            {/* Grade Distribution */}
+            <div className="mb-8">
+                <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <span>📈</span>
+                    توزيع العلامات
+                </h4>
+                <div className="space-y-3">
+                    {gradeRanges.map((range, idx) => (
+                        <div key={idx} className="flex items-center gap-3">
+                            <div className="w-32 text-sm font-medium text-gray-700">{range.label}</div>
+                            <div className="flex-1 bg-gray-100 rounded-full h-8 overflow-hidden">
+                                <div
+                                    className={`${range.color} h-full flex items-center justify-end px-3 text-white font-bold text-sm transition-all duration-500`}
+                                    style={{ width: `${allGrades.length > 0 ? (range.count / allGrades.length) * 100 : 0}%` }}
+                                >
+                                    {range.count > 0 && `${range.count} طالب`}
+                                </div>
                             </div>
-                            <div className="text-3xl font-black text-blue-700">
-                                {data.length * (data[0]?.length || 0)}
-                            </div>
-                            <div className="text-xs text-gray-600 mt-1">
-                                {data.length} صف × {data[0]?.length || 0} عمود
+                            <div className="w-16 text-right text-sm font-bold text-gray-700">
+                                {allGrades.length > 0 ? ((range.count / allGrades.length) * 100).toFixed(0) : 0}%
                             </div>
                         </div>
+                    ))}
+                </div>
+            </div>
 
-                        <div className="bg-gradient-to-br from-green-50 to-green-100 p-5 rounded-xl border-2 border-green-200">
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm font-medium text-gray-700">الخلايا المملوءة</span>
-                                <span className="text-3xl">✅</span>
-                            </div>
-                            <div className="text-3xl font-black text-green-700">
-                                {data.flat().filter(cell => cell !== null && cell !== undefined && cell !== '').length}
-                            </div>
-                            <div className="text-xs text-gray-600 mt-1">
-                                {Math.round((data.flat().filter(cell => cell !== null && cell !== undefined && cell !== '').length / (data.length * (data[0]?.length || 1))) * 100)}% مكتملة
-                            </div>
-                        </div>
-
-                        <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-5 rounded-xl border-2 border-purple-200">
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm font-medium text-gray-700">القيم الرقمية</span>
-                                <span className="text-3xl">🔢</span>
-                            </div>
-                            <div className="text-3xl font-black text-purple-700">
-                                {data.flat().filter(cell => !isNaN(Number(cell)) && cell !== '' && cell !== null).length}
-                            </div>
-                            <div className="text-xs text-gray-600 mt-1">
-                                متوسط: {(() => {
-                                    const nums = data.flat().filter(cell => !isNaN(Number(cell)) && cell !== '' && cell !== null).map(Number);
-                                    return nums.length > 0 ? (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2) : '0';
-                                })()}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* AI Insights */}
-                    <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl p-6 border-2 border-orange-200 mb-6">
-                        <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            <span>🤖</span>
-                            رؤى ذكية
-                        </h4>
-                        <div className="space-y-3 text-sm">
-                            {data.length > 0 ? (
-                                <>
-                                    <div className="flex items-start gap-2">
-                                        <span className="text-blue-600 font-bold">📌</span>
-                                        <p className="text-gray-700">
-                                            الجدول الحالي يحتوي على <strong>{data.length} صف</strong> و <strong>{data[0]?.length || 0} عمود</strong>
-                                        </p>
-                                    </div>
-                                    <div className="flex items-start gap-2">
-                                        <span className="text-green-600 font-bold">✓</span>
-                                        <p className="text-gray-700">
-                                            تم ملء <strong>{data.flat().filter(c => c !== '' && c !== null).length} خلية</strong> من أصل <strong>{data.length * (data[0]?.length || 0)}</strong>
-                                        </p>
-                                    </div>
-                                    <div className="flex items-start gap-2">
-                                        <span className="text-purple-600 font-bold">🔢</span>
-                                        <p className="text-gray-700">
-                                            يوجد <strong>{data.flat().filter(c => !isNaN(Number(c)) && c !== '' && c !== null).length} قيمة رقمية</strong> في البيانات
-                                        </p>
-                                    </div>
-                                    {(() => {
-                                        const nums = data.flat().filter(c => !isNaN(Number(c)) && c !== '' && c !== null).map(Number);
-                                        if (nums.length > 0) {
-                                            const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
-                                            return (
-                                                <div className="flex items-start gap-2">
-                                                    <span className="text-orange-600 font-bold">📊</span>
-                                                    <p className="text-gray-700">
-                                                        المعدل العام للقيم الرقمية: <strong className="text-orange-700">{avg.toFixed(2)}</strong>
-                                                    </p>
-                                                </div>
-                                            );
-                                        }
-                                        return null;
-                                    })()}
-                                </>
-                            ) : (
-                                <p className="text-gray-500 italic">لا توجد بيانات للتحليل بعد</p>
+            {/* Top Performers & Struggling Students */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                {/* Top Students */}
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5 border-2 border-green-200">
+                    <h4 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                        <span>⭐</span>
+                        الطلاب المتفوقون (90+)
+                    </h4>
+                    {excellentStudents.length > 0 ? (
+                        <div className="space-y-2">
+                            {excellentStudents.slice(0, 5).map((student, idx) => (
+                                <div key={idx} className="flex items-center justify-between bg-white rounded-lg p-3">
+                                    <span className="font-medium text-gray-800">{student.name}</span>
+                                    <span className="font-bold text-green-700">{student.average.toFixed(1)}</span>
+                                </div>
+                            ))}
+                            {excellentStudents.length > 5 && (
+                                <p className="text-sm text-gray-600 mt-2">+{excellentStudents.length - 5} طالب آخر</p>
                             )}
                         </div>
-                    </div>
+                    ) : (
+                        <p className="text-gray-500 text-sm">لا يوجد طلاب متفوقون حالياً</p>
+                    )}
+                </div>
 
-                    {/* Quarter Comparison */}
-                    <QuarterComparison
-                        classId={classId}
-                        selectedYear={selectedYear}
-                        currentQuarter={selectedQuarter}
-                    />
+                {/* Struggling Students */}
+                <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl p-5 border-2 border-red-200">
+                    <h4 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                        <span>⚠️</span>
+                        طلاب يحتاجون دعم (&lt;55)
+                    </h4>
+                    {strugglingStudents.length > 0 ? (
+                        <div className="space-y-2">
+                            {strugglingStudents.slice(0, 5).map((student, idx) => (
+                                <div key={idx} className="flex items-center justify-between bg-white rounded-lg p-3">
+                                    <span className="font-medium text-gray-800">{student.name}</span>
+                                    <span className="font-bold text-red-700">{student.average.toFixed(1)}</span>
+                                </div>
+                            ))}
+                            {strugglingStudents.length > 5 && (
+                                <p className="text-sm text-gray-600 mt-2">+{strugglingStudents.length - 5} طالب آخر</p>
+                            )}
+                        </div>
+                    ) : (
+                        <p className="text-gray-500 text-sm">جميع الطلاب يحققون النجاح! 🎉</p>
+                    )}
+                </div>
+            </div>
+
+            {/* Subject Analysis */}
+            <div className="mb-8">
+                <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <span>📚</span>
+                    تحليل المواد الدراسية
+                </h4>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead className="bg-gradient-to-r from-purple-100 to-blue-100">
+                            <tr>
+                                <th className="p-3 text-right font-bold">المادة</th>
+                                <th className="p-3 text-center font-bold">المعدل</th>
+                                <th className="p-3 text-center font-bold">أعلى علامة</th>
+                                <th className="p-3 text-center font-bold">أدنى علامة</th>
+                                <th className="p-3 text-center font-bold">ناجحون</th>
+                                <th className="p-3 text-center font-bold">راسبون</th>
+                                <th className="p-3 text-center font-bold">نسبة النجاح</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y">
+                            {subjectStats.map((subject, idx) => (
+                                <tr key={idx} className="hover:bg-gray-50">
+                                    <td className="p-3 font-medium">{subject.name}</td>
+                                    <td className="p-3 text-center">
+                                        <span className={`font-bold ${subject.average >= 70 ? 'text-green-600' : subject.average >= 55 ? 'text-orange-600' : 'text-red-600'}`}>
+                                            {subject.average.toFixed(1)}
+                                        </span>
+                                    </td>
+                                    <td className="p-3 text-center text-green-600 font-bold">{subject.max}</td>
+                                    <td className="p-3 text-center text-red-600 font-bold">{subject.min}</td>
+                                    <td className="p-3 text-center text-green-700">{subject.passing}</td>
+                                    <td className="p-3 text-center text-red-700">{subject.failing}</td>
+                                    <td className="p-3 text-center">
+                                        <span className={`font-bold ${subject.passingRate >= 80 ? 'text-green-600' : subject.passingRate >= 60 ? 'text-orange-600' : 'text-red-600'}`}>
+                                            {subject.passingRate.toFixed(0)}%
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* AI Insights & Recommendations */}
+            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border-2 border-indigo-200">
+                <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <span>🤖</span>
+                    رؤى وتوصيات ذكية
+                </h4>
+                <div className="space-y-3">
+                    {/* Overall Performance */}
+                    {overallAverage >= 80 && (
+                        <div className="flex items-start gap-2 bg-green-100 border border-green-300 rounded-lg p-3">
+                            <span className="text-2xl">🎉</span>
+                            <div>
+                                <p className="font-bold text-green-800">أداء ممتاز!</p>
+                                <p className="text-sm text-green-700">المعدل العام للصف {overallAverage.toFixed(1)}% - استمروا على هذا النهج الرائع!</p>
+                            </div>
+                        </div>
+                    )}
+                    {overallAverage >= 60 && overallAverage < 80 && (
+                        <div className="flex items-start gap-2 bg-blue-100 border border-blue-300 rounded-lg p-3">
+                            <span className="text-2xl">👍</span>
+                            <div>
+                                <p className="font-bold text-blue-800">أداء جيد</p>
+                                <p className="text-sm text-blue-700">المعدل العام {overallAverage.toFixed(1)}% - هناك مجال للتحسين</p>
+                            </div>
+                        </div>
+                    )}
+                    {overallAverage < 60 && overallAverage > 0 && (
+                        <div className="flex items-start gap-2 bg-orange-100 border border-orange-300 rounded-lg p-3">
+                            <span className="text-2xl">⚠️</span>
+                            <div>
+                                <p className="font-bold text-orange-800">يحتاج الصف لدعم إضافي</p>
+                                <p className="text-sm text-orange-700">المعدل العام {overallAverage.toFixed(1)}% - يُنصح بوضع خطة تحسين</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Struggling Students Alert */}
+                    {strugglingStudents.length > 0 && (
+                        <div className="flex items-start gap-2 bg-red-100 border border-red-300 rounded-lg p-3">
+                            <span className="text-2xl">🆘</span>
+                            <div>
+                                <p className="font-bold text-red-800">تنبيه: طلاب يحتاجون دعم عاجل</p>
+                                <p className="text-sm text-red-700">
+                                    {strugglingStudents.length} طالب بمعدل أقل من 55%: {strugglingStudents.slice(0, 3).map(s => s.name).join('، ')}
+                                    {strugglingStudents.length > 3 && ' وآخرون'}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Weakest Subject */}
+                    {subjectStats.length > 0 && (() => {
+                        const weakest = subjectStats.reduce((min, s) => s.average < min.average ? s : min);
+                        if (weakest.average < 70) {
+                            return (
+                                <div className="flex items-start gap-2 bg-purple-100 border border-purple-300 rounded-lg p-3">
+                                    <span className="text-2xl">📚</span>
+                                    <div>
+                                        <p className="font-bold text-purple-800">المادة الأضعف</p>
+                                        <p className="text-sm text-purple-700">
+                                            {weakest.name} بمعدل {weakest.average.toFixed(1)}% - يُنصح بتخصيص حصص دعم إضافية
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
+
+                    {/* Top Performer Recognition */}
+                    {topStudent && topStudent.average >= 85 && (
+                        <div className="flex items-start gap-2 bg-yellow-100 border border-yellow-300 rounded-lg p-3">
+                            <span className="text-2xl">⭐</span>
+                            <div>
+                                <p className="font-bold text-yellow-800">الطالب المتميز</p>
+                                <p className="text-sm text-yellow-700">
+                                    {topStudent.name} بمعدل {topStudent.average.toFixed(1)}% - تستحق التقدير والتشجيع!
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -437,7 +653,7 @@ function QuarterComparison({ classId, selectedYear, currentQuarter }: { classId:
 
     if (loading) {
         return (
-            <div className="bg-purple-50 rounded-xl p-6 border-2 border-purple-200">
+            <div className="bg-purple-50 rounded-xl p-6 border-2 border-purple-200 mt-6">
                 <div className="text-center text-gray-600">⏳ جاري تحميل مقارنة الأرباع...</div>
             </div>
         );
@@ -448,7 +664,7 @@ function QuarterComparison({ classId, selectedYear, currentQuarter }: { classId:
     }
 
     return (
-        <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-6 border-2 border-purple-200">
+        <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-6 border-2 border-purple-200 mt-6">
             <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <span>📈</span>
                 مقارنة الأداء بين الأرباع
