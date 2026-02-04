@@ -53,7 +53,7 @@ export default function ProtocolsPage() {
             return;
         }
 
-        const newProtocol: any = {
+        const newProtocol: Omit<MeetingProtocol, 'id'> = {
             coordinatorId: effectiveCoordinatorId,
             date: new Date().toISOString().split('T')[0],
             type: 'staff',
@@ -73,7 +73,7 @@ export default function ProtocolsPage() {
         }
     };
 
-    const updateMeetingProtocolState = (id: string, field: keyof MeetingProtocol, value: any) => {
+    const updateMeetingProtocolState = (id: string, field: keyof MeetingProtocol, value: string) => {
         setMeetingProtocols(protocols => protocols.map(p =>
             p.id === id ? { ...p, [field]: value } : p
         ));
