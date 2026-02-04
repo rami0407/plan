@@ -12,6 +12,7 @@ export async function generateStaticParams() {
     }));
 }
 
-export default function ClassPage({ params }: { params: { classId: string } }) {
+export default async function ClassPage(props: { params: Promise<{ classId: string }> }) {
+    const params = await props.params;
     return <ClassEditorClient classId={params.classId} />;
 }
