@@ -607,11 +607,13 @@ export default function PrincipalDashboard() {
 }
 
 // Sub-component for Task Assignment to keep main component clean
+// Sub-component for Task Assignment to keep main component clean
 function TaskAssignmentForm({ coordinators }: { coordinators: CoordinatorPlan[] }) {
     const [taskText, setTaskText] = useState('');
     const [selectedCoordinators, setSelectedCoordinators] = useState<string[]>([]);
     const [isSending, setIsSending] = useState(false);
     const [users, setUsers] = useState<any[]>([]);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -665,6 +667,7 @@ function TaskAssignmentForm({ coordinators }: { coordinators: CoordinatorPlan[] 
             setTaskText('');
             setSelectedCoordinators([]);
             alert(`✅ تم إرسال المهمة لـ ${selectedCoordinators.length} منسق`);
+            setIsDropdownOpen(false);
         } catch (error) {
             console.error(error);
             alert('❌ حدث خطأ أثناء إرسال المهمة');
@@ -685,68 +688,91 @@ function TaskAssignmentForm({ coordinators }: { coordinators: CoordinatorPlan[] 
                     onChange={(e) => setTaskText(e.target.value)}
                 />
             </div>
-            <div className="w-full md:w-1/3">
+            <div className="w-full md:w-1/3 relative">
                 <label className="block text-sm font-bold text-gray-700 mb-2">
                     إسناد إلى ({selectedCoordinators.length} محدد)
                 </label>
 
-                {/* Select All Checkbox */}
-                <div className="mb-3 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border-2 border-blue-300">
-                    <label className="flex items-center gap-2 cursor-pointer group">
-                        <input
-                            type="checkbox"
-                            checked={users.length > 0 && selectedCoordinators.length === users.length}
-                            onChange={(e) => handleSelectAll(e.target.checked)}
-                            className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                        />
-                        <span className="font-bold text-blue-800 group-hover:text-blue-900">✓ تحديد الكل</span>
-                    </label>
-                </div>
+                <button
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="w-full p-3 bg-white border border-gray-300 rounded-lg flex items-center justify-between hover:border-blue-500 transition-colors"
+                >
+                    <span className="text-gray-600 truncate">
+                        {selectedCoordinators.length > 0
+                            ? `${selectedCoordinators.length} منسقين تم اختيارهم`
+                            : 'اختر المنسقين...'}
+                    </span>
+                    <svg
+                        className={`w-5 h-5 text-gray-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
 
-                {/* Individual Checkboxes */}
-                <div className="max-h-60 overflow-y-auto border-2 border-gray-300 rounded-lg p-3 bg-white">
-                    {users.length > 0 ? users.map(user => (
-                        <label
-                            key={user.uid || user.id}
-                            className="flex items-center gap-3 p-2 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors group"
-                        >
-                            <input
-                                type="checkbox"
-                                checked={selectedCoordinators.includes(user.uid || user.id)}
-                                onChange={(e) => handleToggleCoordinator(user.uid || user.id, e.target.checked)}
-                                className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                            />
-                            <span className="text-gray-700 group-hover:text-blue-700 font-medium">
-                                {user.name} ({user.subject || user.role})
-                            </span>
-                        </label>
-                    )) : coordinators.map(c => (
-                        <label
-                            key={c.id}
-                            className="flex items-center gap-3 p-2 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors group"
-                        >
-                            <input
-                                type="checkbox"
-                                checked={selectedCoordinators.includes(c.id)}
-                                onChange={(e) => handleToggleCoordinator(c.id, e.target.checked)}
-                                className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                            />
-                            <span className="text-gray-700 group-hover:text-blue-700 font-medium">
-                                {c.coordinatorName}
-                            </span>
-                        </label>
-                    ))}
-                    {users.length === 0 && coordinators.length === 0 && (
-                        <div className="text-center text-gray-400 py-4">لا يوجد منسقين</div>
-                    )}
-                </div>
+                {isDropdownOpen && (
+                    <div className="absolute bottom-full mb-2 left-0 w-full bg-white border border-gray-200 rounded-xl shadow-2xl z-50 overflow-hidden">
+                        {/* Select All Checkbox */}
+                        <div className="p-3 bg-gray-50 border-b border-gray-100">
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                                <input
+                                    type="checkbox"
+                                    checked={users.length > 0 && selectedCoordinators.length === users.length}
+                                    onChange={(e) => handleSelectAll(e.target.checked)}
+                                    className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                                />
+                                <span className="font-bold text-blue-800 group-hover:text-blue-900">✓ تحديد الكل</span>
+                            </label>
+                        </div>
+
+                        {/* Individual Checkboxes */}
+                        <div className="max-h-60 overflow-y-auto p-2">
+                            {users.length > 0 ? users.map(user => (
+                                <label
+                                    key={user.uid || user.id}
+                                    className="flex items-center gap-3 p-2 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors group"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedCoordinators.includes(user.uid || user.id)}
+                                        onChange={(e) => handleToggleCoordinator(user.uid || user.id, e.target.checked)}
+                                        className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                                    />
+                                    <span className="text-gray-700 group-hover:text-blue-700 font-medium whitespace-nowrap">
+                                        {user.name}
+                                    </span>
+                                </label>
+                            )) : coordinators.map(c => (
+                                <label
+                                    key={c.id}
+                                    className="flex items-center gap-3 p-2 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors group"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedCoordinators.includes(c.id)}
+                                        onChange={(e) => handleToggleCoordinator(c.id, e.target.checked)}
+                                        className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                                    />
+                                    <span className="text-gray-700 group-hover:text-blue-700 font-medium whitespace-nowrap">
+                                        {c.coordinatorName}
+                                    </span>
+                                </label>
+                            ))}
+                            {users.length === 0 && coordinators.length === 0 && (
+                                <div className="text-center text-gray-400 py-4">لا يوجد منسقين</div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
             <button
                 onClick={handleAssignTask}
                 disabled={isSending || !taskText || selectedCoordinators.length === 0}
                 className={`btn bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-bold shadow-lg shadow-blue-200 transition-all ${isSending || selectedCoordinators.length === 0 ? 'opacity-70 cursor-not-allowed' : 'hover:-translate-y-1'}`}
             >
-                {isSending ? 'جاري الإرسال...' : `إرسال المهمة 📤 ${selectedCoordinators.length > 0 ? `(${selectedCoordinators.length})` : ''}`}
+                {isSending ? 'جاري الإرسال...' : 'إرسال 📤'}
             </button>
         </div>
     );

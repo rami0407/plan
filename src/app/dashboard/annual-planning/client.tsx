@@ -11,29 +11,36 @@ export default function AnnualPlanningClient() {
     const [sending, setSending] = useState(false);
     const [saving, setSaving] = useState(false);
     const [showAI, setShowAI] = useState(false);
-    const planId = '2025'; // Fixed ID for the 2025-2026 plan for now
+
+    // Year Selection State
+    const currentYear = new Date().getFullYear();
+    const [selectedYear, setSelectedYear] = useState(currentYear);
+    const availableYears = Array.from({ length: 2040 - currentYear + 1 }, (_, i) => currentYear + i);
+
+    // Dynamic Plan ID based on selected year
+    const planId = selectedYear.toString();
 
     useEffect(() => {
-        const loadPlan = async () => {
-            try {
-                // Try to fetch existing plan
-                const docRef = doc(db, 'annualPlans', planId);
-                const docSnap = await getDoc(docRef);
-
-                if (docSnap.exists()) {
-                    setMonths(docSnap.data().months as MonthPlan[]);
-                } else {
-                    // Generate new if not exists
-                    setMonths(generateAcademicYearMonths(2025));
-                }
-            } catch (error) {
-                console.error('Error loading plan:', error);
-                setMonths(generateAcademicYearMonths(2025)); // Fallback
-            }
-        };
-
         loadPlan();
-    }, []);
+    }, [selectedYear]);
+
+    const loadPlan = async () => {
+        try {
+            // Try to fetch existing plan
+            const docRef = doc(db, 'annualPlans', planId);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                setMonths(docSnap.data().months as MonthPlan[]);
+            } else {
+                // Generate new if not exists
+                setMonths(generateAcademicYearMonths(selectedYear));
+            }
+        } catch (error) {
+            console.error('Error loading plan:', error);
+            setMonths(generateAcademicYearMonths(selectedYear)); // Fallback
+        }
+    };
 
     const updateWeekField = (monthIndex: number, weekIndex: number, field: string, value: any) => {
         setMonths(prev => prev.map((m, mi) =>
@@ -52,7 +59,8 @@ export default function AnnualPlanningClient() {
         try {
             await setDoc(doc(db, 'annualPlans', planId), {
                 months: months,
-                updatedAt: Date.now()
+                updatedAt: Date.now(),
+                year: selectedYear
             });
             alert('✅ تم حفظ الخطة بنجاح');
         } catch (error) {
@@ -72,11 +80,11 @@ export default function AnnualPlanningClient() {
             // Create Notification for the Principal/Manager
             await addDoc(collection(db, 'notifications'), {
                 userId: 'manager-id',
-                title: 'خطة سنوية جديدة',
-                message: 'قام المركّز بإرسال الخطة السنوية للمراجعة.',
+                title: `خطة سنوية جديدة (${selectedYear})`,
+                message: `قام المركّز بإرسال الخطة السنوية لعام ${selectedYear} للمراجعة.`,
                 read: false,
                 createdAt: Date.now(),
-                link: '/dashboard/annual-planning',
+                link: `/dashboard/annual-planning?year=${selectedYear}`,
                 type: 'SYSTEM'
             });
 
@@ -84,10 +92,10 @@ export default function AnnualPlanningClient() {
             await addDoc(collection(db, 'notifications'), {
                 userId: 'coordinator-id',
                 title: 'تم الإرسال بنجاح',
-                message: 'تم إرسال الخطة السنوية للمدير بنجاح.',
+                message: `تم إرسال الخطة السنوية لعام ${selectedYear} للمدير بنجاح.`,
                 read: false,
                 createdAt: Date.now(),
-                link: '/dashboard/annual-planning',
+                link: `/dashboard/annual-planning?year=${selectedYear}`,
                 type: 'SYSTEM'
             });
 
@@ -107,54 +115,71 @@ export default function AnnualPlanningClient() {
                     <h1 className="text-3xl font-black mb-2">التخطيط السنوي</h1>
                     <p className="text-gray-500 text-lg">توزيع المواد والفعاليات على أشهر السنة</p>
                 </div>
-                <div className="flex gap-3 print:hidden">
-                    <button
-                        onClick={() => setShowAI(true)}
-                        className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold shadow-lg hover:scale-105 transition-all flex items-center gap-2 animate-pulse"
-                    >
-                        <span>✨</span> مساعد التخطيط
-                    </button>
-                    <button
-                        onClick={handleDownload}
-                        className="btn btn-ghost border-2 border-gray-300 hover:border-gray-800 hover:bg-gray-50 flex items-center gap-2"
-                    >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                        تنزيل (PDF)
-                    </button>
-                    <button
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="btn btn-outline border-blue-600 text-blue-600 hover:bg-blue-50 px-6 py-2 flex items-center gap-2"
-                    >
-                        {saving ? 'جاري الحفظ...' : (
-                            <>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                                حفظ
-                            </>
-                        )}
-                    </button>
-                    <button
-                        onClick={handleSendToManager}
-                        disabled={sending}
-                        className="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 flex items-center gap-2 shadow-lg hover:shadow-xl transition-all"
-                    >
-                        {sending ? (
-                            <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span>
-                        ) : (
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                        )}
-                        إرسال للمدير
-                    </button>
+
+                <div className="flex flex-wrap gap-3 items-center">
+                    {/* Year Selector */}
+                    <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-200 flex items-center gap-2 print:hidden">
+                        <span className="text-gray-500 font-bold">السنة الدراسية:</span>
+                        <select
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(Number(e.target.value))}
+                            className="bg-transparent font-bold text-primary focus:outline-none cursor-pointer text-lg"
+                        >
+                            {availableYears.map(year => (
+                                <option key={year} value={year}>{year} - {year + 1}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="flex gap-3 print:hidden">
+                        <button
+                            onClick={() => setShowAI(true)}
+                            className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold shadow-lg hover:scale-105 transition-all flex items-center gap-2 animate-pulse"
+                        >
+                            <span>✨</span> مساعد التخطيط
+                        </button>
+                        <button
+                            onClick={handleDownload}
+                            className="btn btn-ghost border-2 border-gray-300 hover:border-gray-800 hover:bg-gray-50 flex items-center gap-2"
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            تنزيل (PDF)
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="btn btn-outline border-blue-600 text-blue-600 hover:bg-blue-50 px-6 py-2 flex items-center gap-2"
+                        >
+                            {saving ? 'جاري الحفظ...' : (
+                                <>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                    حفظ
+                                </>
+                            )}
+                        </button>
+                        <button
+                            onClick={handleSendToManager}
+                            disabled={sending}
+                            className="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 flex items-center gap-2 shadow-lg hover:shadow-xl transition-all"
+                        >
+                            {sending ? (
+                                <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span>
+                            ) : (
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                            )}
+                            إرسال للمدير
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {showAI && (
                 <AIAssistant
                     onClose={() => setShowAI(false)}
-                    context={{ months, planId }}
+                    context={{ months, planId, selectedYear }}
                     pageTitle="مساعد التخطيط السنوي"
                     suggestions={[
-                        { label: 'توزيع مواضيع', prompt: 'اقترح توزيعاً منطقياً لمواضيع اللغة العربية على مدار الفصل الأول.', icon: '📚' },
+                        { label: 'توزيع مواضيع', prompt: `اقترح توزيعاً منطقياً لمواضيع اللغة العربية لعام ${selectedYear} على مدار الفصل الأول.`, icon: '📚' },
                         { label: 'تحسين الجدول', prompt: 'راجع الجدول الحالي واقترح تحسينات لفعاليات شهر ديسمبر.', icon: '📅' }
                     ]}
                 />
