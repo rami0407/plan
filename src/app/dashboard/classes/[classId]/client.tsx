@@ -296,7 +296,6 @@ export default function ClassEditorClient({ classId }: ClassEditorClientProps) {
 
             </div>
         </div>
-        </div >
     );
 }
 
