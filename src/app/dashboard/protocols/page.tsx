@@ -73,6 +73,23 @@ function ProtocolsContent() {
         setActiveTab('new');
     };
 
+    const handleDelete = async (e: React.MouseEvent, protocolId: string) => {
+        e.stopPropagation(); // Prevent card click
+        if (!confirm('⚠️ هل أنت متأكد من حذف هذا البروتوكول نهائياً؟')) return;
+
+        try {
+            await deleteProtocol(protocolId);
+            setMeetingProtocols(prev => prev.filter(p => p.id !== protocolId));
+            if (editingProtocol?.id === protocolId) {
+                setEditingProtocol(null);
+            }
+            alert('✅ تم حذف البروتوكول بنجاح');
+        } catch (error) {
+            console.error('Error deleting protocol:', error);
+            alert('❌ حدث خطأ أثناء الحذف');
+        }
+    };
+
     const handleSaveDraft = async () => {
         if (!editingProtocol) return;
 
@@ -205,11 +222,27 @@ function ProtocolsContent() {
                         <h2 className="text-2xl font-black text-gray-800">
                             {editingProtocol?.id === 'temp_new' ? 'تحرير بروتوكول جديد' : 'تعديل مسودة'}
                         </h2>
-                        {activeTab === 'drafts' && (
-                            <button onClick={() => setEditingProtocol(null)} className="text-gray-500 hover:text-gray-700">
-                                ❌ إغلاق
-                            </button>
-                        )}
+                        <div className="flex items-center gap-3">
+                            {editingProtocol?.id !== 'temp_new' && (
+                                <button
+                                    onClick={(e) => handleDelete(e, editingProtocol!.id!)}
+                                    className="p-2 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                                    title="حذف البروتوكول"
+                                >
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="3 6 5 6 21 6" />
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                        <line x1="10" y1="11" x2="10" y2="17" />
+                                        <line x1="14" y1="11" x2="14" y2="17" />
+                                    </svg>
+                                </button>
+                            )}
+                            {activeTab === 'drafts' && (
+                                <button onClick={() => setEditingProtocol(null)} className="text-gray-500 hover:text-gray-700 font-bold">
+                                    ❌ إغلاق
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     {editingProtocol && (
@@ -318,8 +351,19 @@ function ProtocolsContent() {
                                 <h3 className="font-bold text-gray-800 text-lg mb-2 line-clamp-1 group-hover:text-purple-600 transition-colors">
                                     {protocol.topic || 'بدون عنوان'}
                                 </h3>
-                                <div className="text-sm text-gray-500 mb-4 flex items-center gap-2">
-                                    📅 {protocol.date}
+                                <div className="text-sm text-gray-500 mb-4 flex items-center justify-between">
+                                    <span className="flex items-center gap-2">📅 {protocol.date}</span>
+
+                                    <button
+                                        onClick={(e) => handleDelete(e, protocol.id!)}
+                                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                                        title="حذف"
+                                    >
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="3 6 5 6 21 6" />
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                        </svg>
+                                    </button>
                                 </div>
 
                                 {activeTab === 'sent' && (
