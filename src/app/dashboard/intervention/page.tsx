@@ -56,6 +56,10 @@ export default function InterventionPage() {
     const { user } = useAuth();
     const [managerFeedback, setManagerFeedback] = useState('');
 
+    const currentYear = new Date().getFullYear();
+    const [selectedYear, setSelectedYear] = useState<string>('2026');
+    const years = Array.from({ length: 15 }, (_, i) => (2026 + i).toString());
+
     const [selectedGrade, setSelectedGrade] = useState('');
     const [selectedSection, setSelectedSection] = useState('');
 
@@ -76,8 +80,8 @@ export default function InterventionPage() {
             await createNotification({
                 recipientId: effectiveCoordinatorId,
                 title: 'ملاحظات مدير المدرسة',
-                message: `قام المدير بإضافة تعقيب على خطة التدخل الخاصة بطلابك (${selectedGrade} شعبه ${selectedSection}): "${managerFeedback.substring(0, 50)}..."`,
-                link: `/dashboard/intervention?grade=${selectedGrade}&section=${selectedSection}`,
+                message: `قام المدير بإضافة تعقيب على خطة التدخل (${selectedYear}) الخاصة بطلابك (${selectedGrade} شعبه ${selectedSection}): "${managerFeedback.substring(0, 50)}..."`,
+                link: `/dashboard/intervention?grade=${selectedGrade}&section=${selectedSection}&year=${selectedYear}`,
                 type: 'intervention_update',
                 senderName: 'الإدارة',
                 senderRole: 'principal'
@@ -98,7 +102,14 @@ export default function InterventionPage() {
     // In a real app, we might check if user is admin before allowing query param override. 
     // For now, if param exists, use it (Principal view), else use logged-in user (Coordinator view).
     const paramCoordinatorId = searchParams.get('coordinatorId');
+    const paramYear = searchParams.get('year');
     const effectiveCoordinatorId = paramCoordinatorId || user?.uid;
+
+    useEffect(() => {
+        if (paramYear) {
+            setSelectedYear(paramYear);
+        }
+    }, [paramYear]);
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -133,7 +144,7 @@ export default function InterventionPage() {
             setDocIds({});
             setLoading(false);
         }
-    }, [effectiveCoordinatorId, selectedGrade, selectedSection]);
+    }, [effectiveCoordinatorId, selectedGrade, selectedSection, selectedYear]);
 
     const loadPlans = async () => {
         try {
@@ -142,8 +153,17 @@ export default function InterventionPage() {
             // Fetch ALL plans for this coordinator
             const allPlans = await getInterventionPlans(effectiveCoordinatorId!);
 
-            // Filter for current Grade/Section selection
-            const plans = allPlans.filter((p: any) => p.grade === selectedGrade && p.section === selectedSection);
+            // Filter for current Grade/Section AND Year
+            const plans = allPlans.filter((p: any) => {
+                const sameGrade = p.grade === selectedGrade;
+                const sameSection = p.section === selectedSection;
+                // Backward compatibility: if p.year is undefined, assume '2026' or treat as current context if user selects 2026
+                // For simplified logic: match p.year if exists, else match if selectedYear is 2026 (assuming old data is for 2026)
+                const planYear = p.year || '2026';
+                const sameYear = planYear === selectedYear;
+
+                return sameGrade && sameSection && sameYear;
+            });
 
             const newPlans = {
                 individual: [] as any[],
@@ -209,6 +229,7 @@ export default function InterventionPage() {
                     level: level,
                     grade: selectedGrade,
                     section: selectedSection,
+                    year: selectedYear, // Checking this field
                     students: rows
                 };
 
@@ -222,7 +243,7 @@ export default function InterventionPage() {
                 }
             }
 
-            alert(`✅ تم حفظ خطة التدخل للصف ${selectedGrade} شعبة ${selectedSection} بنجاح`);
+            alert(`✅ تم حفظ خطة التدخل للصف ${selectedGrade} شعبة ${selectedSection} (סنة ${selectedYear}) بنجاح`);
         } catch (error) {
             console.error('Error saving plans:', error);
             alert('❌ حدث خطأ أثناء الحفظ');
@@ -241,9 +262,9 @@ export default function InterventionPage() {
             const { createNotification } = await import('@/lib/firestoreService');
             await createNotification({
                 recipientId: 'admin',
-                title: 'تقديم خطة التدخل',
-                message: `قام ${user?.displayName || 'المركز'} بتقديم خطة التدخل الخاصة به للمراجعة.`,
-                link: `/dashboard/intervention?coordinatorId=${effectiveCoordinatorId}`,
+                title: `تقديم خطة التدخل (${selectedYear})`,
+                message: `قام ${user?.displayName || 'المركز'} بتقديم خطة التدخل (${selectedYear}) الخاصة به للمراجعة.`,
+                link: `/dashboard/intervention?coordinatorId=${effectiveCoordinatorId}&year=${selectedYear}`,
                 type: 'plan_submission',
                 senderName: user?.displayName || 'Coordinator',
                 senderRole: 'coordinator'
@@ -315,7 +336,7 @@ export default function InterventionPage() {
                                 </svg>
                             </div>
                             <div>
-                                <h1 className="mb-1">خطة التدخل</h1>
+                                <h1 className="mb-1">خطة التدخل ({selectedYear})</h1>
                                 <p className="text-gray-600">نظام متابعة تقدم الطلاب على مستويات مختلفة</p>
                             </div>
                         </div>
@@ -332,6 +353,17 @@ export default function InterventionPage() {
 
                 {/* Grade & Section Selectors */}
                 <div className="bg-white p-6 mb-8 rounded-xl shadow-sm border border-gray-100 flex flex-wrap gap-6 items-center print:hidden">
+                    <div className="flex flex-col gap-2">
+                        <label className="font-bold text-gray-700">السنة الدراسية</label>
+                        <select
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(e.target.value)}
+                            className="px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none min-w-[150px] bg-slate-50"
+                        >
+                            {years.map(y => <option key={y} value={y}>{y}</option>)}
+                        </select>
+                    </div>
+
                     <div className="flex flex-col gap-2">
                         <label className="font-bold text-gray-700">الصف الدراسي</label>
                         <select
@@ -358,7 +390,7 @@ export default function InterventionPage() {
 
                     {selectedGrade && selectedSection && (
                         <div className="mr-auto text-green-600 font-bold flex items-center gap-2 animate-fade-in">
-                            <span>✅ جاري عرض خطة: {selectedGrade} {selectedSection}</span>
+                            <span>✅ جاري عرض خطة: {selectedGrade} {selectedSection} ({selectedYear})</span>
                         </div>
                     )}
                 </div>

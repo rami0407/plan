@@ -43,6 +43,7 @@ export interface InterventionPlan {
     id?: string;
     coordinatorId: string;
     level: 'individual' | 'group' | 'class';
+    year?: string;
     students: {
         studentName: string;
         currentGrade: string;
@@ -475,6 +476,7 @@ export interface MeetingProtocol {
     summary: string;
     decisions: string;
     nextSteps: string;
+    status: 'draft' | 'sent';
     createdAt?: any;
 }
 
