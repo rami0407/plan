@@ -36,6 +36,11 @@ export default function AnalyticsPage() {
     const [selectedGrade, setSelectedGrade] = useState<string>('');
     const [selectedClassId, setSelectedClassId] = useState<string>('');
 
+    // Multi-Year Support
+    const currentYear = new Date().getFullYear();
+    const [selectedYear, setSelectedYear] = useState<string>('2026');
+    const years = Array.from({ length: 15 }, (_, i) => (2026 + i).toString());
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -213,6 +218,18 @@ export default function AnalyticsPage() {
                         <p className="text-gray-500 text-lg">رؤية شاملة للأداء الأكاديمي والإحصائيات المدرسية</p>
                     </div>
 
+                    {/* Year Selector */}
+                    <div className="flex flex-col">
+                        <label className="text-xs font-bold text-gray-500 mb-1">السنة الدراسية</label>
+                        <select
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(e.target.value)}
+                            className="px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none bg-white font-bold text-gray-700"
+                        >
+                            {years.map(y => <option key={y} value={y}>{y}</option>)}
+                        </select>
+                    </div>
+
                     <button
                         onClick={() => setShowAI(true)}
                         className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl font-bold shadow-xl hover:scale-105 transition-all flex items-center gap-2 animate-pulse"
@@ -283,17 +300,19 @@ export default function AnalyticsPage() {
                 )}
             </div>
 
-            {showAI && (
-                <AIAssistant
-                    onClose={() => setShowAI(false)}
-                    context={{ students: filteredStudents, viewLevel, selectedGrade, selectedClassId, subjectPerformanceData }}
-                    pageTitle="المساعد الإحصائي"
-                    suggestions={[
-                        { label: 'تحليل الأداء', prompt: 'قم بتحليل بيانات الأداء المعروضة واذكر أهم 3 نقاط قوة ونقاط ضعف.', icon: '📉' },
-                        { label: 'توصيات للغياب', prompt: 'بناءً على نسبة الغيابات، ما هي الخطوات المقترحة لتحسين الحضور؟', icon: '🚨' }
-                    ]}
-                />
-            )}
+            {
+                showAI && (
+                    <AIAssistant
+                        onClose={() => setShowAI(false)}
+                        context={{ students: filteredStudents, viewLevel, selectedGrade, selectedClassId, subjectPerformanceData }}
+                        pageTitle="المساعد الإحصائي"
+                        suggestions={[
+                            { label: 'تحليل الأداء', prompt: 'قم بتحليل بيانات الأداء المعروضة واذكر أهم 3 نقاط قوة ونقاط ضعف.', icon: '📉' },
+                            { label: 'توصيات للغياب', prompt: 'بناءً على نسبة الغيابات، ما هي الخطوات المقترحة لتحسين الحضور؟', icon: '🚨' }
+                        ]}
+                    />
+                )
+            }
 
             {/* Metrics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -392,26 +411,28 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Comparison Bar for School/Grade Views */}
-            {viewLevel !== 'class' && (
-                <div className="glass-panel p-6 mb-6">
-                    <div className="flex items-center gap-3 mb-6">
-                        <h3 className="text-xl font-bold">
-                            {viewLevel === 'school' ? 'مقارنة المعدل العام بين الطبقات' : 'مقارنة المعدل العام بين الصفوف'}
-                        </h3>
+            {
+                viewLevel !== 'class' && (
+                    <div className="glass-panel p-6 mb-6">
+                        <div className="flex items-center gap-3 mb-6">
+                            <h3 className="text-xl font-bold">
+                                {viewLevel === 'school' ? 'مقارنة المعدل العام بين الطبقات' : 'مقارنة المعدل العام بين الصفوف'}
+                            </h3>
+                        </div>
+                        <div className="h-[320px] w-full dir-ltr">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={comparisonData}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                                    <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }} />
+                                    <YAxis domain={[0, 100]} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }} />
+                                    <Tooltip contentStyle={{ background: 'white', border: '2px solid #8884d8', borderRadius: '12px', fontWeight: 600 }} />
+                                    <Bar dataKey="value" fill="#8884d8" name="المعدل العام" radius={[8, 8, 0, 0]} barSize={40} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
-                    <div className="h-[320px] w-full dir-ltr">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={comparisonData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                                <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }} />
-                                <YAxis domain={[0, 100]} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }} />
-                                <Tooltip contentStyle={{ background: 'white', border: '2px solid #8884d8', borderRadius: '12px', fontWeight: 600 }} />
-                                <Bar dataKey="value" fill="#8884d8" name="المعدل العام" radius={[8, 8, 0, 0]} barSize={40} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Dynamic Insights */}
             <div className="glass-panel p-8 mt-8">
@@ -495,6 +516,6 @@ export default function AnalyticsPage() {
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
