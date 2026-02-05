@@ -165,6 +165,41 @@ export default function ClassEditorClient({ classId }: ClassEditorClientProps) {
         }
     };
 
+    const handleImportPreviousQuarter = async () => {
+        const currentIndex = QUARTERS.findIndex(q => q.id === selectedQuarter);
+        if (currentIndex <= 0) return;
+
+        const prevQuarter = QUARTERS[currentIndex - 1];
+
+        if (!confirm(`هل أنت متأكد من استيراد البيانات من ${prevQuarter.name}؟ سيتم استبدال أي بيانات موجودة حالياً.`)) {
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const docRef = doc(db, 'classes', String(selectedYear), classId, prevQuarter.id);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const docData = docSnap.data();
+                if (docData.dataJson) {
+                    const parsedData = JSON.parse(docData.dataJson);
+                    setData(parsedData);
+                    alert(`تم استيراد البيانات من ${prevQuarter.name} بنجاح!`);
+                } else {
+                    alert(`لا توجد بيانات محفوظة في ${prevQuarter.name}.`);
+                }
+            } else {
+                alert(`لم يتم العثور على بيانات في ${prevQuarter.name}.`);
+            }
+        } catch (error) {
+            console.error('Error importing previous quarter:', error);
+            alert('حدث خطأ أثناء الاستيراد.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleExportExcel = () => {
         try {
             // Map data back to labels for export
@@ -267,6 +302,18 @@ export default function ClassEditorClient({ classId }: ClassEditorClientProps) {
                             <span>📋</span>
                             تحميل قالب جاهز
                         </button>
+
+                        {/* Import from Previous Quarter Button */}
+                        {selectedQuarter !== 'q1' && (
+                            <button
+                                onClick={handleImportPreviousQuarter}
+                                className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold transition-all flex items-center gap-2"
+                            >
+                                <span>⏮️</span>
+                                نسخ من المرحلة السابقة
+                            </button>
+                        )}
+
                         <button
                             onClick={handleExportExcel}
                             className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all flex items-center gap-2"
