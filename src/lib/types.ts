@@ -21,7 +21,37 @@ export interface Student {
   classId: string;
   // Holistic Map Data
   academicStatus?: 'Excellent' | 'Good' | 'Fair' | 'Poor';
-  socialStatus?: string;
+  // 1. Attendance
+  attendance?: 'Regular' | 'Rarely' | 'Often' | 'Dropout';
+  // 2. Violence
+  violence?: 'Often' | 'Rarely' | 'VerbalOften' | 'VerbalRarely' | 'None';
+  // 3. Social Status
+  socialStatus?: 'Leader' | 'Involved' | 'Lonely' | 'Rejected' | string;
+  // 4. Need Diagnosis
+  needsDiagnosis?: boolean;
+  // 5. Learning Resource
+  learningResource?: 'Individual' | 'Inclusion' | 'Reinforcement' | 'Other';
+  // 6. Emotional Resource
+  emotionalResource?: 'Psychologist' | 'Counselor' | 'Art' | 'Other';
+  // 7. Strengths
+  strengths?: string;
+  // 8. Weaknesses (Points to Strengthen)
+  weaknesses?: string;
+  // 9. Enrichment Programs
+  enrichmentPrograms?: 'School' | 'Outside' | 'Both' | 'None';
+  // 10. Layer Enrichment Type
+  layerEnrichmentType?: string;
+  // 11. Family Status
+  familyStatus?: 'Married' | 'Divorced' | 'Other';
+  // 12. Scholarship
+  scholarship?: boolean;
+  // 13. Health Condition
+  healthCondition?: string;
+  // 14. Disabilities
+  disabilities?: string;
+  // 15. Resource Type
+  resourceType?: string;
+  
   emotionalStatus?: string;
   economicStatus?: string;
   absences: number;
