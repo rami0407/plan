@@ -524,3 +524,18 @@ body {
     transform: translateX(0);
   }
 }
+
+/* Handsontable Dropdown Fix */
+.handsontable .htAutocompleteArrow {
+  color: #3b82f6 !important;
+}
+
+.handsontable .htUI .ht_master .wtHolder {
+    overflow: visible !important;
+}
+
+.handsontable .htDropdownMenu, 
+.handsontable .htAutocomplete, 
+.handsontable .htContextMenu {
+    z-index: 10050 !important;
+}
