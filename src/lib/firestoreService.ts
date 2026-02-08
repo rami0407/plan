@@ -240,6 +240,40 @@ export const updateClass = async (id: string, data: Partial<ClassGroup>) => {
     }
 };
 
+export const getAllClassesData = async (year: string, quarter: string, classes: ClassGroup[]): Promise<any[]> => {
+    try {
+        if (!classes || classes.length === 0) return [];
+
+        const promises = classes.map(async (cls) => {
+            const docRef = doc(db, 'classes', year.toString(), cls.id, quarter);
+            // We use getDoc to fetch specific document for that year/class/quarter
+            const docSnap = await import('firebase/firestore').then(mod => mod.getDoc(docRef));
+
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data.dataJson) {
+                    const parsed = JSON.parse(data.dataJson);
+                    // Add class metadata to each student row for grouping
+                    return parsed.map((student: any) => ({
+                        ...student,
+                        classId: cls.id,
+                        className: cls.name,
+                        quarter: quarter,
+                        year: year
+                    }));
+                }
+            }
+            return [];
+        });
+
+        const results = await Promise.all(promises);
+        return results.flat().filter(s => s && s['الاسم الرباعي']); // Filter empty rows/invalid data
+    } catch (error) {
+        console.error('Error getting all classes data:', error);
+        return [];
+    }
+};
+
 // Students CRUD
 export const addStudent = async (student: Omit<Student, 'id'> & { id?: string }) => {
     try {

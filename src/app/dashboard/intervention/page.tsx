@@ -175,7 +175,18 @@ export default function InterventionPage() {
 
             plans.forEach(plan => {
                 if (plan.level && newPlans[plan.level as keyof typeof newPlans]) {
-                    newPlans[plan.level as keyof typeof newPlans] = plan.students || [];
+                    newPlans[plan.level as keyof typeof newPlans] = (plan.students || []).map((s: any) => ({
+                        id: s.id || Math.random().toString(),
+                        studentName: s.studentName || '',
+                        currentFunctioning: s.currentFunctioning || s.currentGrade || '', // Migration: currentGrade -> currentFunctioning
+                        goals: s.goals || s.targetGoal || '', // Migration: targetGoal -> goals
+                        operationalGoals: s.operationalGoals || s.assessmentMethod || '', // Migration: assessmentMethod -> operationalGoals
+                        duration: s.duration || '',
+                        resources: s.resources || '',
+                        evaluation1: s.evaluation1 || '',
+                        evaluation2: s.evaluation2 || '',
+                        finalEvaluation: s.finalEvaluation || s.notes || '' // Migration: notes -> finalEvaluation
+                    }));
                     newDocIds[plan.level] = plan.id;
                 }
             });
@@ -198,10 +209,14 @@ export default function InterventionPage() {
     const createEmptyRow = () => ({
         id: Date.now().toString() + Math.random().toString(), // Temp ID for UI key
         studentName: '',
-        currentGrade: '',
-        targetGoal: '',
-        assessmentMethod: '',
-        notes: ''
+        currentFunctioning: '',
+        goals: '',
+        operationalGoals: '',
+        duration: '',
+        resources: '',
+        evaluation1: '',
+        evaluation2: '',
+        finalEvaluation: ''
     });
 
     const handleSavePlans = async () => {
@@ -287,26 +302,26 @@ export default function InterventionPage() {
     };
 
     const updateInterventionRow = (level: 'individual' | 'group' | 'class', id: string, field: string, value: string) => {
-        setInterventionPlans({
-            ...interventionPlans,
-            [level]: interventionPlans[level].map(row =>
+        setInterventionPlans(prev => ({
+            ...prev,
+            [level]: prev[level].map(row =>
                 row.id === id ? { ...row, [field]: value } : row
             )
-        });
+        }));
     };
 
     const deleteInterventionRow = (level: 'individual' | 'group' | 'class', id: string) => {
-        setInterventionPlans({
-            ...interventionPlans,
-            [level]: interventionPlans[level].filter(row => row.id !== id)
-        });
+        setInterventionPlans(prev => ({
+            ...prev,
+            [level]: prev[level].filter(row => row.id !== id)
+        }));
     };
 
     const exportToPDF = () => {
         window.print();
     };
 
-    const inputClass = "w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white text-base font-medium transition-all print:border-0 print:bg-transparent";
+    const inputClass = "w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:border-blue-500 bg-white text-sm transition-all print:border-0 print:bg-transparent";
 
     // Tag Input Component for Group Level
 
@@ -410,35 +425,51 @@ export default function InterventionPage() {
                             <div className="border border-gray-400 print:border-black rounded-lg overflow-hidden">
                                 <table className="w-full border-collapse">
                                     <thead>
-                                        <tr className="bg-gray-200 print:bg-white">
-                                            <th className="border border-gray-400 print:border-black p-3 text-right font-bold w-48 text-base">اسم الطالب</th>
-                                            <th className="border border-gray-400 print:border-black p-3 text-right font-bold w-32 text-base">العلامة الحالية</th>
-                                            <th className="border border-gray-400 print:border-black p-3 text-right font-bold text-base">الهدف المرجو تحقيقه</th>
-                                            <th className="border border-gray-400 print:border-black p-3 text-right font-bold text-base">طرق التقييم</th>
-                                            <th className="border border-gray-400 print:border-black p-3 text-right font-bold text-base">ملاحظات</th>
-                                            <th className="border border-gray-400 print:hidden w-16"></th>
+                                        <tr className="bg-gray-200 print:bg-white text-xs">
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-32">שם התלמיד</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-32">תפקוד נוכחי</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-32">יעדים</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-32">דרכי פעולה-מטרות אופרטיביות</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-20">משך זמן</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-24">אמצעים / משאבים</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-20">הערכה 1</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-20">הערכה 2</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-20">הערכה סופית</th>
+                                            <th className="border border-gray-400 print:hidden w-10"></th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {interventionPlans.individual.map(row => (
                                             <tr key={row.id} className="hover:bg-blue-50 transition-colors">
-                                                <td className="border border-gray-400 print:border-black p-2">
-                                                    <input type="text" value={row.studentName} onChange={(e) => updateInterventionRow('individual', row.id, 'studentName', e.target.value)} className={inputClass} placeholder="اسم الطالب..." />
+                                                <td className="border border-gray-400 print:border-black p-1">
+                                                    <input type="text" value={row.studentName} onChange={(e) => updateInterventionRow('individual', row.id, 'studentName', e.target.value)} className={inputClass} />
                                                 </td>
-                                                <td className="border border-gray-400 print:border-black p-2">
-                                                    <input type="text" value={row.currentGrade} onChange={(e) => updateInterventionRow('individual', row.id, 'currentGrade', e.target.value)} className={inputClass} placeholder="العلامة..." />
+                                                <td className="border border-gray-400 print:border-black p-1">
+                                                    <input type="text" value={row.currentFunctioning} onChange={(e) => updateInterventionRow('individual', row.id, 'currentFunctioning', e.target.value)} className={inputClass} />
                                                 </td>
-                                                <td className="border border-gray-400 print:border-black p-2">
-                                                    <input type="text" value={row.targetGoal} onChange={(e) => updateInterventionRow('individual', row.id, 'targetGoal', e.target.value)} className={inputClass} placeholder="الهدف..." />
+                                                <td className="border border-gray-400 print:border-black p-1">
+                                                    <input type="text" value={row.goals} onChange={(e) => updateInterventionRow('individual', row.id, 'goals', e.target.value)} className={inputClass} />
                                                 </td>
-                                                <td className="border border-gray-400 print:border-black p-2">
-                                                    <input type="text" value={row.assessmentMethod} onChange={(e) => updateInterventionRow('individual', row.id, 'assessmentMethod', e.target.value)} className={inputClass} placeholder="طرق التقييم..." />
+                                                <td className="border border-gray-400 print:border-black p-1">
+                                                    <input type="text" value={row.operationalGoals} onChange={(e) => updateInterventionRow('individual', row.id, 'operationalGoals', e.target.value)} className={inputClass} />
                                                 </td>
-                                                <td className="border border-gray-400 print:border-black p-2">
-                                                    <input type="text" value={row.notes} onChange={(e) => updateInterventionRow('individual', row.id, 'notes', e.target.value)} className={inputClass} placeholder="ملاحظات..." />
+                                                <td className="border border-gray-400 print:border-black p-1">
+                                                    <input type="text" value={row.duration} onChange={(e) => updateInterventionRow('individual', row.id, 'duration', e.target.value)} className={inputClass} />
                                                 </td>
-                                                <td className="border border-gray-400 print:hidden p-2 text-center">
-                                                    <button onClick={() => deleteInterventionRow('individual', row.id)} className="text-red-600 hover:text-red-800 text-2xl font-bold hover:bg-red-50 rounded px-2" title="حذف">×</button>
+                                                <td className="border border-gray-400 print:border-black p-1">
+                                                    <input type="text" value={row.resources} onChange={(e) => updateInterventionRow('individual', row.id, 'resources', e.target.value)} className={inputClass} />
+                                                </td>
+                                                <td className="border border-gray-400 print:border-black p-1">
+                                                    <input type="text" value={row.evaluation1} onChange={(e) => updateInterventionRow('individual', row.id, 'evaluation1', e.target.value)} className={inputClass} />
+                                                </td>
+                                                <td className="border border-gray-400 print:border-black p-1">
+                                                    <input type="text" value={row.evaluation2} onChange={(e) => updateInterventionRow('individual', row.id, 'evaluation2', e.target.value)} className={inputClass} />
+                                                </td>
+                                                <td className="border border-gray-400 print:border-black p-1">
+                                                    <input type="text" value={row.finalEvaluation} onChange={(e) => updateInterventionRow('individual', row.id, 'finalEvaluation', e.target.value)} className={inputClass} />
+                                                </td>
+                                                <td className="border border-gray-400 print:hidden p-1 text-center">
+                                                    <button onClick={() => deleteInterventionRow('individual', row.id)} className="text-red-600 hover:text-red-800 text-xl font-bold" title="حذف">×</button>
                                                 </td>
                                             </tr>
                                         ))}
@@ -459,45 +490,61 @@ export default function InterventionPage() {
                             <div className="border border-gray-400 print:border-black rounded-lg overflow-hidden">
                                 <table className="w-full border-collapse">
                                     <thead>
-                                        <tr className="bg-gray-200 print:bg-white">
-                                            <th className="border border-gray-400 print:border-black p-3 text-right font-bold w-64 text-base">أسماء الطلاب (المجموعة)</th>
-                                            <th className="border border-gray-400 print:border-black p-3 text-right font-bold w-32 text-base">العلامة الحالية</th>
-                                            <th className="border border-gray-400 print:border-black p-3 text-right font-bold text-base">الهدف المرجو تحقيقه</th>
-                                            <th className="border border-gray-400 print:border-black p-3 text-right font-bold text-base">طرق التقييم</th>
-                                            <th className="border border-gray-400 print:border-black p-3 text-right font-bold text-base">ملاحظات</th>
-                                            <th className="border border-gray-400 print:hidden w-16"></th>
+                                        <tr className="bg-gray-200 print:bg-white text-xs">
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-40">שמות התלמידים (קבוצה)</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-32">תפקוד נוכחי</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-32">יעדים</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-32">דרכי פעולה-מטרות אופרטיביות</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-20">משך זמן</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-24">אמצעים / משאבים</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-20">הערכה 1</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-20">הערכה 2</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-20">הערכה סופית</th>
+                                            <th className="border border-gray-400 print:hidden w-10"></th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {interventionPlans.group.map(row => (
                                             <tr key={row.id} className="hover:bg-green-50 transition-colors">
-                                                <td className="border border-gray-400 print:border-black p-2 align-top">
+                                                <td className="border border-gray-400 print:border-black p-1 align-top">
                                                     <TagInput
                                                         value={row.studentName}
                                                         onChange={(val) => updateInterventionRow('group', row.id, 'studentName', val)}
-                                                        placeholder="اكتب الاسم واضغط Enter..."
+                                                        placeholder="اضغط Enter..."
                                                     />
                                                 </td>
-                                                <td className="border border-gray-400 print:border-black p-2 align-top">
-                                                    <input type="text" value={row.currentGrade} onChange={(e) => updateInterventionRow('group', row.id, 'currentGrade', e.target.value)} className={inputClass} placeholder="العلامة..." />
+                                                <td className="border border-gray-400 print:border-black p-1 align-top">
+                                                    <input type="text" value={row.currentFunctioning} onChange={(e) => updateInterventionRow('group', row.id, 'currentFunctioning', e.target.value)} className={inputClass} />
                                                 </td>
-                                                <td className="border border-gray-400 print:border-black p-2 align-top">
-                                                    <input type="text" value={row.targetGoal} onChange={(e) => updateInterventionRow('group', row.id, 'targetGoal', e.target.value)} className={inputClass} placeholder="الهدف..." />
+                                                <td className="border border-gray-400 print:border-black p-1 align-top">
+                                                    <input type="text" value={row.goals} onChange={(e) => updateInterventionRow('group', row.id, 'goals', e.target.value)} className={inputClass} />
                                                 </td>
-                                                <td className="border border-gray-400 print:border-black p-2 align-top">
-                                                    <input type="text" value={row.assessmentMethod} onChange={(e) => updateInterventionRow('group', row.id, 'assessmentMethod', e.target.value)} className={inputClass} placeholder="طرق التقييم..." />
+                                                <td className="border border-gray-400 print:border-black p-1 align-top">
+                                                    <input type="text" value={row.operationalGoals} onChange={(e) => updateInterventionRow('group', row.id, 'operationalGoals', e.target.value)} className={inputClass} />
                                                 </td>
-                                                <td className="border border-gray-400 print:border-black p-2 align-top">
-                                                    <input type="text" value={row.notes} onChange={(e) => updateInterventionRow('group', row.id, 'notes', e.target.value)} className={inputClass} placeholder="ملاحظات..." />
+                                                <td className="border border-gray-400 print:border-black p-1 align-top">
+                                                    <input type="text" value={row.duration} onChange={(e) => updateInterventionRow('group', row.id, 'duration', e.target.value)} className={inputClass} />
                                                 </td>
-                                                <td className="border border-gray-400 print:hidden p-2 text-center align-top">
-                                                    <button onClick={() => deleteInterventionRow('group', row.id)} className="text-red-600 hover:text-red-800 text-2xl font-bold hover:bg-red-50 rounded px-2" title="حذف">×</button>
+                                                <td className="border border-gray-400 print:border-black p-1 align-top">
+                                                    <input type="text" value={row.resources} onChange={(e) => updateInterventionRow('group', row.id, 'resources', e.target.value)} className={inputClass} />
+                                                </td>
+                                                <td className="border border-gray-400 print:border-black p-1 align-top">
+                                                    <input type="text" value={row.evaluation1} onChange={(e) => updateInterventionRow('group', row.id, 'evaluation1', e.target.value)} className={inputClass} />
+                                                </td>
+                                                <td className="border border-gray-400 print:border-black p-1 align-top">
+                                                    <input type="text" value={row.evaluation2} onChange={(e) => updateInterventionRow('group', row.id, 'evaluation2', e.target.value)} className={inputClass} />
+                                                </td>
+                                                <td className="border border-gray-400 print:border-black p-1 align-top">
+                                                    <input type="text" value={row.finalEvaluation} onChange={(e) => updateInterventionRow('group', row.id, 'finalEvaluation', e.target.value)} className={inputClass} />
+                                                </td>
+                                                <td className="border border-gray-400 print:hidden p-1 text-center align-top">
+                                                    <button onClick={() => deleteInterventionRow('group', row.id)} className="text-red-600 hover:text-red-800 text-xl font-bold" title="حذف">×</button>
                                                 </td>
                                             </tr>
                                         ))}
                                         <tr className="print:hidden bg-green-50">
-                                            <td colSpan={6} className="border border-gray-400 p-3 text-center">
-                                                <button onClick={() => addInterventionRow('group')} className="text-green-700 hover:text-green-900 font-bold text-base">+ إضافة مجموعة</button>
+                                            <td colSpan={10} className="border border-gray-400 p-2 text-center">
+                                                <button onClick={() => addInterventionRow('group')} className="text-green-700 hover:text-green-900 font-bold text-sm">+ إضافة مجموعة</button>
                                             </td>
                                         </tr>
                                     </tbody>
@@ -510,43 +557,58 @@ export default function InterventionPage() {
                             <h3 className="text-2xl font-bold mb-4 text-purple-700">3. خطة تدخل بمستوى الصف</h3>
                             <div className="border border-gray-400 print:border-black rounded-lg overflow-hidden">
                                 <table className="w-full border-collapse">
-                                    {/* ... existing table code ... */}
                                     <thead>
-                                        <tr className="bg-gray-200 print:bg-white">
-                                            <th className="border border-gray-400 print:border-black p-3 text-right font-bold w-48 text-base">الصف / الشعبة</th>
-                                            <th className="border border-gray-400 print:border-black p-3 text-right font-bold w-32 text-base">المستوى الحالي</th>
-                                            <th className="border border-gray-400 print:border-black p-3 text-right font-bold text-base">الهدف المرجو تحقيقه للصف</th>
-                                            <th className="border border-gray-400 print:border-black p-3 text-right font-bold text-base">استراتيجيات العمل</th>
-                                            <th className="border border-gray-400 print:border-black p-3 text-right font-bold text-base">ملاحظات</th>
-                                            <th className="border border-gray-400 print:hidden w-16"></th>
+                                        <tr className="bg-gray-200 print:bg-white text-xs">
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-32">הכיתה</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-32">תפקוד נוכחי</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-32">יעדים</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-32">דרכי פעולה-מטרות אופרטיביות</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-20">משך זמן</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-24">אמצעים / משאבים</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-20">הערכה 1</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-20">הערכה 2</th>
+                                            <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-20">הערכה סופית</th>
+                                            <th className="border border-gray-400 print:hidden w-10"></th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {interventionPlans.class.map(row => (
                                             <tr key={row.id} className="hover:bg-purple-50 transition-colors">
-                                                <td className="border border-gray-400 print:border-black p-2">
+                                                <td className="border border-gray-400 print:border-black p-1">
                                                     <input type="text" value={row.studentName} onChange={(e) => updateInterventionRow('class', row.id, 'studentName', e.target.value)} className={inputClass} placeholder="مثال: الخامس أ" />
                                                 </td>
-                                                <td className="border border-gray-400 print:border-black p-2">
-                                                    <input type="text" value={row.currentGrade} onChange={(e) => updateInterventionRow('class', row.id, 'currentGrade', e.target.value)} className={inputClass} placeholder="المستوى العام..." />
+                                                <td className="border border-gray-400 print:border-black p-1">
+                                                    <input type="text" value={row.currentFunctioning} onChange={(e) => updateInterventionRow('class', row.id, 'currentFunctioning', e.target.value)} className={inputClass} />
                                                 </td>
-                                                <td className="border border-gray-400 print:border-black p-2">
-                                                    <input type="text" value={row.targetGoal} onChange={(e) => updateInterventionRow('class', row.id, 'targetGoal', e.target.value)} className={inputClass} placeholder="هدف الصف..." />
+                                                <td className="border border-gray-400 print:border-black p-1">
+                                                    <input type="text" value={row.goals} onChange={(e) => updateInterventionRow('class', row.id, 'goals', e.target.value)} className={inputClass} />
                                                 </td>
-                                                <td className="border border-gray-400 print:border-black p-2">
-                                                    <input type="text" value={row.assessmentMethod} onChange={(e) => updateInterventionRow('class', row.id, 'assessmentMethod', e.target.value)} className={inputClass} placeholder="الاستراتيجيات..." />
+                                                <td className="border border-gray-400 print:border-black p-1">
+                                                    <input type="text" value={row.operationalGoals} onChange={(e) => updateInterventionRow('class', row.id, 'operationalGoals', e.target.value)} className={inputClass} />
                                                 </td>
-                                                <td className="border border-gray-400 print:border-black p-2">
-                                                    <input type="text" value={row.notes} onChange={(e) => updateInterventionRow('class', row.id, 'notes', e.target.value)} className={inputClass} placeholder="ملاحظات..." />
+                                                <td className="border border-gray-400 print:border-black p-1">
+                                                    <input type="text" value={row.duration} onChange={(e) => updateInterventionRow('class', row.id, 'duration', e.target.value)} className={inputClass} />
                                                 </td>
-                                                <td className="border border-gray-400 print:hidden p-2 text-center">
-                                                    <button onClick={() => deleteInterventionRow('class', row.id)} className="text-red-600 hover:text-red-800 text-2xl font-bold hover:bg-red-50 rounded px-2" title="حذف">×</button>
+                                                <td className="border border-gray-400 print:border-black p-1">
+                                                    <input type="text" value={row.resources} onChange={(e) => updateInterventionRow('class', row.id, 'resources', e.target.value)} className={inputClass} />
+                                                </td>
+                                                <td className="border border-gray-400 print:border-black p-1">
+                                                    <input type="text" value={row.evaluation1} onChange={(e) => updateInterventionRow('class', row.id, 'evaluation1', e.target.value)} className={inputClass} />
+                                                </td>
+                                                <td className="border border-gray-400 print:border-black p-1">
+                                                    <input type="text" value={row.evaluation2} onChange={(e) => updateInterventionRow('class', row.id, 'evaluation2', e.target.value)} className={inputClass} />
+                                                </td>
+                                                <td className="border border-gray-400 print:border-black p-1">
+                                                    <input type="text" value={row.finalEvaluation} onChange={(e) => updateInterventionRow('class', row.id, 'finalEvaluation', e.target.value)} className={inputClass} />
+                                                </td>
+                                                <td className="border border-gray-400 print:hidden p-1 text-center">
+                                                    <button onClick={() => deleteInterventionRow('class', row.id)} className="text-red-600 hover:text-red-800 text-xl font-bold" title="حذف">×</button>
                                                 </td>
                                             </tr>
                                         ))}
                                         <tr className="print:hidden bg-purple-50">
-                                            <td colSpan={6} className="border border-gray-400 p-3 text-center">
-                                                <button onClick={() => addInterventionRow('class')} className="text-purple-700 hover:text-purple-900 font-bold text-base">+ إضافة صف</button>
+                                            <td colSpan={10} className="border border-gray-400 p-2 text-center">
+                                                <button onClick={() => addInterventionRow('class')} className="text-purple-700 hover:text-purple-900 font-bold text-sm">+ إضافة صف</button>
                                             </td>
                                         </tr>
                                     </tbody>

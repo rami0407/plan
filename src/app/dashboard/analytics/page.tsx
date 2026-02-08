@@ -41,15 +41,60 @@ export default function AnalyticsPage() {
     const [selectedYear, setSelectedYear] = useState<string>('2026');
     const years = Array.from({ length: 15 }, (_, i) => (2026 + i).toString());
 
+    // Quarter State
+    const [selectedQuarter, setSelectedQuarter] = useState<string>('q1');
+    const quarters = [
+        { id: 'q1', name: 'الربع الأول' },
+        { id: 'q2', name: 'الربع الثاني' },
+        { id: 'q3', name: 'الربع الثالث' },
+        { id: 'q4', name: 'الربع الرابع' },
+    ];
+
     useEffect(() => {
         const fetchData = async () => {
+            setLoading(true);
             try {
-                const [studentsData, classesData] = await Promise.all([
-                    getStudents(),
-                    getClasses()
-                ]);
-                setStudents(studentsData);
+                // 1. Get Classes first
+                const classesData = await getClasses();
                 setClasses(classesData);
+
+                // 2. Get Data from all class sheets for Selected Year & Quarter
+                // Dynamically import to avoid server-side issues if any, though this is a client component
+                const { getAllClassesData } = await import('@/lib/firestoreService');
+                const allStudentsData = await getAllClassesData(selectedYear, selectedQuarter, classesData);
+
+                // Map to Student Interface
+                // The raw data has Arabic keys mostly. We need to map them to english keys expected by the UI/Charts
+                // expected: name, classId, grades: { Subject: score }
+                // We need to map the subjects based on column headers.
+                // Let's assume standard mapping based on header mapping if possible, 
+                // but for now, we'll try to extract known subjects.
+
+                const mappedStudents: Student[] = allStudentsData.map((row: any) => {
+                    const grades: any = {};
+                    // Map common subjects from Arabic headers to English keys
+                    // Note constraint: The UI uses 'Math', 'Science', 'Arabic', 'English', 'Hebrew' keys.
+                    // The excel columns might be 'الرياضيات', 'العلوم', etc.
+
+                    if (row['اللغة العربية']) grades['Arabic'] = Number(row['اللغة العربية']) || 0;
+                    if (row['اللغة العبرية']) grades['Hebrew'] = Number(row['اللغة العبرية']) || 0;
+                    if (row['الرياضيات']) grades['Math'] = Number(row['الرياضيات']) || 0;
+                    if (row['العلوم']) grades['Science'] = Number(row['العلوم']) || 0;
+                    if (row['اللغة الإنجليزية']) grades['English'] = Number(row['اللغة الإنجليزية']) || 0;
+
+                    return {
+                        id: row.id || Math.random().toString(), // fallback id
+                        name: row['الاسم الرباعي'] || row.name || 'Unknown',
+                        classId: row.classId,
+                        gradeLevel: row.className ? row.className.split(' ')[0] : 'Unknown', // Derive grade from class name
+                        absences: Number(row['غياب']) || 0,
+                        behavior: row['سلوك'] || '',
+                        grades: grades
+                    } as Student;
+                });
+
+                setStudents(mappedStudents);
+
             } catch (error) {
                 console.error("Error fetching analytics data:", error);
             } finally {
@@ -57,7 +102,7 @@ export default function AnalyticsPage() {
             }
         };
         fetchData();
-    }, []);
+    }, [selectedYear, selectedQuarter]); // Re-fetch when Year or Quarter changes
 
     // Derived Data: Grades (Layers)
     // We assume classes have a 'grade' field or we parse it. 
@@ -227,6 +272,18 @@ export default function AnalyticsPage() {
                             className="px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none bg-white font-bold text-gray-700"
                         >
                             {years.map(y => <option key={y} value={y}>{y}</option>)}
+                        </select>
+                    </div>
+
+                    {/* Quarter Selector */}
+                    <div className="flex flex-col">
+                        <label className="text-xs font-bold text-gray-500 mb-1">الفترة الزمنية</label>
+                        <select
+                            value={selectedQuarter}
+                            onChange={(e) => setSelectedQuarter(e.target.value)}
+                            className="px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none bg-white font-bold text-gray-700"
+                        >
+                            {quarters.map(q => <option key={q.id} value={q.id}>{q.name}</option>)}
                         </select>
                     </div>
 
