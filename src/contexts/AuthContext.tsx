@@ -60,16 +60,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     } else {
                         // 2. Check if Coordinator
                         try {
-                            const q = query(collection(db, 'coordinators'), where('email', '==', user.email));
-                            const snapshot = await getDocs(q);
+                            // 2. Check User Document for Role and Status
+                            const userQuery = query(collection(db, 'users'), where('email', '==', user.email));
+                            const userSnapshot = await getDocs(userQuery);
 
                             if (isMounted) {
-                                if (!snapshot.empty) {
-                                    setRole('coordinator');
-                                    setCoordinatorId(snapshot.docs[0].id);
+                                if (!userSnapshot.empty) {
+                                    const userData = userSnapshot.docs[0].data();
+                                    
+                                    // Check if user is approved
+                                    if (userData.status === 'pending') {
+                                        setRole('user'); // Treat as basic user with no access
+                                        setCoordinatorId(null);
+                                    } else {
+                                        setRole(userData.role || 'coordinator');
+                                        setCoordinatorId(userSnapshot.docs[0].id);
+                                    }
                                 } else {
-                                    setRole('user');
-                                    setCoordinatorId(null);
+                                    // Fallback to coordinators collection if not in users
+                                    const q = query(collection(db, 'coordinators'), where('email', '==', user.email));
+                                    const snapshot = await getDocs(q);
+                                    if (!snapshot.empty) {
+                                        setRole('coordinator');
+                                        setCoordinatorId(snapshot.docs[0].id);
+                                    } else {
+                                        setRole('user');
+                                        setCoordinatorId(null);
+                                    }
                                 }
                             }
                         } catch (error) {

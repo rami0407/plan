@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { signInWithEmailAndPassword, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from 'firebase/auth'; // Import sendPasswordResetEmail
 import { auth } from '@/lib/firebase';
 
@@ -29,7 +30,24 @@ export default function LoginPage() {
     setError('');
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Check if user is approved in Firestore
+      const { getDoc, doc } = await import('firebase/firestore');
+      const { db } = await import('@/lib/firebase');
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        if (userData.status === 'pending') {
+          setError('حسابك قيد المراجعة. يرجى الانتظאר حتى يتم اعتماده من قبل الإدارة.');
+          await auth.signOut();
+          setLoading(false);
+          return;
+        }
+      }
+
       router.push('/dashboard');
     } catch (err: any) {
       console.error('Login error:', err);
@@ -247,8 +265,11 @@ export default function LoginPage() {
                 <span>تسجيل الدخول عبر Google</span>
               </button>
 
-              <div className="footer-text">
-                ليس لديك حساب؟ <a href="mailto:rami0407@gmail.com" className="font-bold text-primary hover:underline">تواصل مع الإدارة</a>
+              <div className="footer-text mt-4 p-4 bg-blue-50 rounded-xl border border-blue-100 text-center">
+                <span className="text-gray-600 block mb-2">ليس لديك حساب؟</span>
+                <Link href="/signup" className="inline-block px-6 py-2 bg-primary text-white rounded-lg font-bold hover:bg-primary-dark transition-all shadow-md">
+                  إنشاء حساب جديد
+                </Link>
               </div>
             </div>
           </>
