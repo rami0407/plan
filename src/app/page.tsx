@@ -267,9 +267,13 @@ export default function LoginPage() {
 
               <div className="footer-text mt-4 p-4 bg-blue-50 rounded-xl border border-blue-100 text-center">
                 <span className="text-gray-600 block mb-2">ليس لديك حساب؟</span>
-                <Link href="/signup" className="inline-block px-6 py-2 bg-primary text-white rounded-lg font-bold hover:bg-primary-dark transition-all shadow-md" prefetch={true}>
+                <button 
+                  type="button"
+                  onClick={() => router.push('/signup')}
+                  className="inline-block px-6 py-2 bg-primary text-white rounded-lg font-bold hover:bg-primary-dark transition-all shadow-md cursor-pointer"
+                >
                   إنشاء حساب جديد
-                </Link>
+                </button>
               </div>
             </div>
           </>
