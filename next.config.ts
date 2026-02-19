@@ -4,8 +4,8 @@ const isProd = process.env.NODE_ENV === 'production' || process.env.CI === 'true
 
 const nextConfig: NextConfig = {
   output: 'export',
-  basePath: '/plan',
-  trailingSlash: true,
+  // basePath: '/plan',
+  // trailingSlash: true,
   images: {
     unoptimized: true,
   },
