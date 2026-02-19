@@ -269,7 +269,7 @@ export default function LoginPage() {
                 <span className="text-gray-600 block mb-2">ليس لديك حساب؟</span>
                 <button 
                   type="button"
-                  onClick={() => router.push('/signup')}
+                  onClick={() => router.push('/signup/')}
                   className="inline-block px-6 py-2 bg-primary text-white rounded-lg font-bold hover:bg-primary-dark transition-all shadow-md cursor-pointer"
                 >
                   إنشاء حساب جديد
