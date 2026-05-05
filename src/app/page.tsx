@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { signInWithEmailAndPassword, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from 'firebase/auth'; // Import sendPasswordResetEmail
+import { signInWithEmailAndPassword, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 export default function LoginPage() {
@@ -11,9 +11,20 @@ export default function LoginPage() {
   const [email, setEmail] = useState(process.env.NEXT_PUBLIC_DEFAULT_USER_EMAIL || '');
   const [password, setPassword] = useState(process.env.NEXT_PUBLIC_DEFAULT_USER_PASSWORD || '');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [mounted, setMounted] = useState(false);
+  const [stars] = useState(() =>
+    Array.from({ length: 50 }, () => ({
+      width: Math.random() * 3 + 1,
+      height: Math.random() * 3 + 1,
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      delay: Math.random() * 3,
+      duration: Math.random() * 2 + 2,
+    }))
+  );
 
   // Forgot Password state
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -30,6 +41,7 @@ export default function LoginPage() {
     setError('');
 
     try {
+      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
@@ -115,17 +127,17 @@ export default function LoginPage() {
     <div className="login-bg-effect min-h-screen flex items-center justify-center p-4 relative overflow-hidden" dir="rtl">
       {/* Stars Animation */}
       <div className="stars">
-        {[...Array(50)].map((_, i) => (
+        {mounted && stars.map((s, i) => (
           <div
             key={i}
             className="star"
             style={{
-              width: `${Math.random() * 3 + 1}px`,
-              height: `${Math.random() * 3 + 1}px`,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${Math.random() * 2 + 2}s`
+              width: `${s.width}px`,
+              height: `${s.height}px`,
+              left: `${s.left}%`,
+              top: `${s.top}%`,
+              animationDelay: `${s.delay}s`,
+              animationDuration: `${s.duration}s`
             }}
           ></div>
         ))}
@@ -163,14 +175,14 @@ export default function LoginPage() {
 
               <form onSubmit={handleLogin}>
                 <div className="input-group">
-                  <label htmlFor="username" className="input-label">اسم المستخدم</label>
+                  <label htmlFor="username" className="input-label">البريد الإلكتروني</label>
                   <div className="input-wrapper">
                     <input
-                      type="text"
+                      type="email"
                       id="username"
                       name="username"
                       className="form-input"
-                      placeholder="أدخل اسم المستخدم"
+                      placeholder="example@email.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       disabled={loading}
@@ -223,7 +235,12 @@ export default function LoginPage() {
 
                 <div className="remember-forgot">
                   <label className="remember">
-                    <input type="checkbox" id="remember" />
+                    <input
+                      type="checkbox"
+                      id="remember"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                    />
                     <span>تذكرني</span>
                   </label>
                   <button

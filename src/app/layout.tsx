@@ -3,8 +3,8 @@ import type { Metadata } from 'next';
 import { AuthProvider } from '@/contexts/AuthContext';
 
 export const metadata: Metadata = {
-  title: 'School Management System',
-  description: 'Premium Educational Platform',
+  title: 'مدرسة مشيرفة - المنصة التعليمية',
+  description: 'المشروع التربوي المتميز - منصة إدارة المدرسة',
 };
 
 export default function RootLayout({

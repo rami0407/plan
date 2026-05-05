@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import styles from './Sidebar.module.css';
 
@@ -29,10 +30,8 @@ const Icons = {
     ),
     Protocols: () => (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            <path d="M9 11l3 3L22 4" />
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
         </svg>
     ),
     Analytics: () => (
@@ -105,8 +104,16 @@ const Icons = {
 
 export default function Sidebar() {
     const { user, role, logout } = useAuth();
+    const pathname = usePathname();
     const isAdmin = role === 'admin';
     const isCoordinator = role === 'coordinator';
+
+    const navClass = (href: string) => {
+        const isActive = href === '/dashboard'
+            ? pathname === '/dashboard'
+            : pathname.startsWith(href);
+        return `${styles.navItem}${isActive ? ' ' + styles.active : ''}`;
+    };
 
     const displayName = user?.displayName || user?.email?.split('@')[0] || 'المستخدم';
 
@@ -123,7 +130,7 @@ export default function Sidebar() {
             </div>
 
             <nav className={styles.nav}>
-                <Link href="/dashboard" className={`${styles.navItem} ${styles.active}`}>
+                <Link href="/dashboard" className={navClass('/dashboard')}>
                     <div className={styles.navIcon}>
                         <Icons.Home />
                     </div>
@@ -133,7 +140,7 @@ export default function Sidebar() {
                 {/* Admin Only Links */}
                 {isAdmin && (
                     <>
-                        <Link href="/dashboard/inbox" className={styles.navItem}>
+                        <Link href="/dashboard/inbox" className={navClass('/dashboard/inbox')}>
                             <div className={styles.navIcon}>
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
@@ -143,14 +150,14 @@ export default function Sidebar() {
                             <span>البريد الوارد</span>
                         </Link>
 
-                        <Link href="/dashboard/principal" className={styles.navItem}>
+                        <Link href="/dashboard/principal" className={navClass('/dashboard/principal')}>
                             <div className={styles.navIcon}>
                                 <Icons.Principal />
                             </div>
                             <span>لوحة تحكم المدير</span>
                         </Link>
 
-                        <Link href="/coordinator-portal" className={styles.navItem}>
+                        <Link href="/coordinator-portal" className={navClass('/coordinator-portal')}>
                             <div className={styles.navIcon}>
                                 <Icons.Coordinators />
                             </div>
@@ -159,36 +166,36 @@ export default function Sidebar() {
                     </>
                 )}
 
-                {/* Common Links (All authenticated users typically see these, or at least Admin + Coordinator) */}
-                <Link href="/dashboard/calendar" className={styles.navItem}>
+                {/* Common Links */}
+                <Link href="/dashboard/calendar" className={navClass('/dashboard/calendar')}>
                     <div className={styles.navIcon}>
                         <Icons.Calendar />
                     </div>
                     <span>التقويم المدرسي</span>
                 </Link>
 
-                <Link href="/dashboard/classes" className={styles.navItem}>
+                <Link href="/dashboard/classes" className={navClass('/dashboard/classes')}>
                     <div className={styles.navIcon}>
                         <Icons.Class />
                     </div>
                     <span>الصفوف المدرسية</span>
                 </Link>
 
-                <Link href="/dashboard/tasks" className={styles.navItem}>
+                <Link href="/dashboard/tasks" className={navClass('/dashboard/tasks')}>
                     <div className={styles.navIcon}>
                         <Icons.Tasks />
                     </div>
                     <span>مهامي</span>
                 </Link>
 
-                <Link href="/dashboard/planning" className={styles.navItem}>
+                <Link href="/dashboard/planning" className={navClass('/dashboard/planning')}>
                     <div className={styles.navIcon}>
                         <Icons.Plan />
                     </div>
                     <span>خطط العمل</span>
                 </Link>
 
-                <Link href="/dashboard/annual-planning" className={styles.navItem}>
+                <Link href="/dashboard/annual-planning" className={navClass('/dashboard/annual-planning')}>
                     <div className={styles.navIcon}>
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
@@ -199,30 +206,30 @@ export default function Sidebar() {
                     <span>التخطيط السنوي</span>
                 </Link>
 
-                <Link href="/dashboard/intervention" className={styles.navItem}>
+                <Link href="/dashboard/intervention" className={navClass('/dashboard/intervention')}>
                     <div className={styles.navIcon}>
                         <Icons.Intervention />
                     </div>
                     <span>خطة التدخل</span>
                 </Link>
 
-                <Link href="/dashboard/personal-intervention" className={styles.navItem}>
+                <Link href="/dashboard/personal-intervention" className={navClass('/dashboard/personal-intervention')}>
                     <div className={styles.navIcon}>
                         <Icons.PersonalPlan />
                     </div>
-                    <span>תכנית התערבות אישית</span>
+                    <span>خطة التدخل الشخصية</span>
                 </Link>
 
-                <Link href="/dashboard/protocols" className={styles.navItem} style={{ marginRight: '1.5rem' }}>
+                <Link href="/dashboard/protocols" className={navClass('/dashboard/protocols')}>
                     <div className={styles.navIcon}>
                         <Icons.Protocols />
                     </div>
                     <span>بروتوكولات الجلسات</span>
                 </Link>
 
-                {/* Analytics - Admin Only (Typically) */}
+                {/* Analytics - Admin Only */}
                 {isAdmin && (
-                    <Link href="/dashboard/analytics" className={styles.navItem}>
+                    <Link href="/dashboard/analytics" className={navClass('/dashboard/analytics')}>
                         <div className={styles.navIcon}>
                             <Icons.Analytics />
                         </div>
