@@ -1,12 +1,13 @@
 'use client';
 
+// ... imports
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useRouter, usePathname } from 'next/navigation';
 
-export type UserRole = 'admin' | 'coordinator' | 'user';
+export type UserRole = 'admin' | 'coordinator' | 'user' | 'pending' | 'unauthorized';
 
 interface AuthContextType {
     user: User | null;
@@ -58,18 +59,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         setRole('admin');
                         setCoordinatorId(null);
                     } else {
-                        // 2. Check if Coordinator
                         try {
-                            const q = query(collection(db, 'coordinators'), where('email', '==', user.email));
-                            const snapshot = await getDocs(q);
+                            // 2. Check if in approved 'users' collection first (contains teachers/coordinators)
+                            const qUser = query(collection(db, 'users'), where('email', '==', user.email));
+                            const snapshotUser = await getDocs(qUser);
+
+                            // 3. Also check 'coordinators' collection
+                            const qCoord = query(collection(db, 'coordinators'), where('email', '==', user.email));
+                            const snapshotCoord = await getDocs(qCoord);
 
                             if (isMounted) {
-                                if (!snapshot.empty) {
+                                if (!snapshotUser.empty) {
+                                    const userData = snapshotUser.docs[0].data();
+                                    const userRole = userData.role;
+
+                                    if (userRole === 'admin') {
+                                        setRole('admin');
+                                        setCoordinatorId(null);
+                                    } else if (userRole === 'coordinator') {
+                                        setRole('coordinator');
+                                        const coordId = !snapshotCoord.empty ? snapshotCoord.docs[0].id : user.uid;
+                                        setCoordinatorId(coordId);
+                                    } else {
+                                        setRole('user'); // Default teacher/user
+                                        setCoordinatorId(null);
+                                    }
+                                } else if (!snapshotCoord.empty) {
+                                    // Found in coordinators but not in users (legacy)
                                     setRole('coordinator');
-                                    setCoordinatorId(snapshot.docs[0].id);
+                                    setCoordinatorId(snapshotCoord.docs[0].id);
                                 } else {
-                                    setRole('user');
-                                    setCoordinatorId(null);
+                                    // 4. Check if Pending
+                                    const qPending = query(collection(db, 'pendingUsers'), where('email', '==', user.email));
+                                    const snapshotPending = await getDocs(qPending);
+
+                                    if (!snapshotPending.empty) {
+                                        setRole('pending');
+                                        setCoordinatorId(null);
+                                    } else {
+                                        // Not in users, coordinators, or pending -> Unauthorized!
+                                        setRole('unauthorized');
+                                        setCoordinatorId(null);
+                                    }
                                 }
                             }
                         } catch (error) {
@@ -105,18 +136,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Protected Routes Logic
         const isPublicRoute = pathname === '/';
-        const isProtected = !isPublicRoute;
+        const isPendingPage = pathname === '/approval-pending';
+        const isProtected = !isPublicRoute && !isPendingPage;
 
-        if (!user && isProtected) {
+        if (!user && (isProtected || isPendingPage)) {
             router.push('/');
             return;
         }
 
-        if (user && isPublicRoute) {
-            if (role === 'admin') {
-                router.push('/dashboard/principal');
-            } else {
-                router.push('/dashboard');
+        if (user) {
+            if (role === 'unauthorized') {
+                signOut(auth).catch(err => console.error("Error signing out:", err));
+                alert('عذراً، هذا الحساب غير مصرح له بالدخول أو تم رفضه. يرجى التواصل مع الإدارة.');
+                return;
+            }
+
+            if (role === 'pending') {
+                if (!isPendingPage) {
+                    router.push('/approval-pending');
+                }
+                return;
+            }
+
+            // If user is approved (admin/coordinator) but on pending page, send to dashboard
+            if (isPendingPage && (role === 'admin' || role === 'coordinator')) {
+                router.push(role === 'admin' ? '/dashboard/principal' : '/dashboard');
+                return;
+            }
+
+            if (isPublicRoute) {
+                if (role === 'admin') {
+                    router.push('/dashboard/principal');
+                } else {
+                    router.push('/dashboard');
+                }
             }
         }
     }, [user, role, loading, pathname, router]);

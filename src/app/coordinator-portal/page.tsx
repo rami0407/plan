@@ -243,7 +243,7 @@ export default function CoordinatorPortal() {
                                 {/* Actions */}
                                 <div className="grid grid-cols-2 gap-2">
                                     <Link
-                                        href={`/dashboard/planning/edit/2024`}
+                                        href={`/dashboard/planning/view/2024?userId=${coord.id}`}
                                         className="btn btn-primary px-4 py-3 text-center"
                                     >
                                         📋 خطة العمل
@@ -255,7 +255,7 @@ export default function CoordinatorPortal() {
                                         📝 خطة التدخل
                                     </Link>
                                     <Link
-                                        href="/dashboard/protocols"
+                                        href={`/dashboard/protocols?coordinatorId=${coord.id}`}
                                         className="btn bg-green-500 hover:bg-green-600 text-white px-4 py-3 text-center"
                                     >
                                         👥 البروتوكولات

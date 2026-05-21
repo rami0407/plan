@@ -2,11 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from 'firebase/auth'; // Import sendPasswordResetEmail
+// ... imports
+import { signInWithEmailAndPassword, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { addPendingUser } from '@/lib/firestoreService';
 
 export default function LoginPage() {
   const router = useRouter();
+  // Login State
   const [email, setEmail] = useState(process.env.NEXT_PUBLIC_DEFAULT_USER_EMAIL || '');
   const [password, setPassword] = useState(process.env.NEXT_PUBLIC_DEFAULT_USER_PASSWORD || '');
   const [showPassword, setShowPassword] = useState(false);
@@ -19,6 +22,14 @@ export default function LoginPage() {
   const [resetEmail, setResetEmail] = useState('');
   const [resetStatus, setResetStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
 
+  // Registration State
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [regName, setRegName] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regPhone, setRegPhone] = useState('');
+  const [regStatus, setRegStatus] = useState<'idle' | 'registering' | 'success' | 'error'>('idle');
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -30,6 +41,8 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      // AuthContext will handle redirection based on role/status
+      // But we can verify here if needed
       router.push('/dashboard');
     } catch (err: any) {
       console.error('Login error:', err);
@@ -44,6 +57,41 @@ export default function LoginPage() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegStatus('registering');
+    setError('');
+
+    try {
+      // 1. Create User in Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, regEmail, regPassword);
+      const user = userCredential.user;
+
+      // 2. Update Profile Name
+      await updateProfile(user, { displayName: regName });
+
+      // 3. Add to Pending Users Collection
+      await addPendingUser({
+        uid: user.uid,
+        name: regName,
+        email: regEmail,
+        phone: regPhone,
+      });
+
+      setRegStatus('success');
+    } catch (err: any) {
+      console.error('Registration error:', err);
+      if (err.code === 'auth/email-already-in-use') {
+        setError('البريد الإلكتروني مستخدم بالفعل');
+      } else if (err.code === 'auth/weak-password') {
+        setError('كلمة المرور ضعيفة (يجب أن تكون 6 أحرف على الأقل)');
+      } else {
+        setError('فشل إنشاء الحساب: ' + err.message);
+      }
+      setRegStatus('error');
     }
   };
 
@@ -115,8 +163,9 @@ export default function LoginPage() {
 
       <div className="login-container">
 
-        {/* Main Login View */}
-        {!showForgotPassword ? (
+        {/* Main Interface Logic */}
+        {!showForgotPassword && !isRegistering ? (
+          /* LOGIN VIEW */
           <>
             <div className="login-header">
               <div className="login-logo">
@@ -145,25 +194,20 @@ export default function LoginPage() {
 
               <form onSubmit={handleLogin}>
                 <div className="input-group">
-                  <label htmlFor="username" className="input-label">اسم المستخدم</label>
+                  <label htmlFor="username" className="input-label">البريد الإلكتروني</label>
                   <div className="input-wrapper">
                     <input
                       type="text"
                       id="username"
                       name="username"
                       className="form-input"
-                      placeholder="أدخل اسم المستخدم"
+                      placeholder="أدخل البريد الإلكتروني"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       disabled={loading}
                       required
                     />
-                    <span className="input-icon">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                      </svg>
-                    </span>
+                    <span className="input-icon">✉️</span>
                   </div>
                 </div>
 
@@ -187,18 +231,7 @@ export default function LoginPage() {
                       onClick={togglePasswordVisibility}
                       aria-label="Toggle password visibility"
                     >
-                      {showPassword ? (
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-secondary">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                          <circle cx="12" cy="12" r="3" />
-                          <line x1="1" y1="1" x2="23" y2="23" />
-                        </svg>
-                      ) : (
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                          <circle cx="12" cy="12" r="3" />
-                        </svg>
-                      )}
+                      {showPassword ? "👁️" : "👁️‍🗨️"}
                     </button>
                   </div>
                 </div>
@@ -236,25 +269,26 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={handleGoogleLogin}
-                className="w-full bg-white border border-gray-300 text-gray-700 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-3 hover:bg-gray-50 transition-all mb-6 shadow-sm"
+                className="w-full bg-white border border-gray-300 text-gray-700 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-3 hover:bg-gray-50 transition-all mb-4 shadow-sm"
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M23.52 12.29C23.52 11.43 23.44 10.61 23.3 9.82H12V14.4H18.47C18.19 15.9 17.34 17.18 16.08 18.03V21.03H19.95C22.21 18.94 23.52 15.89 23.52 12.29Z" fill="#4285F4" />
-                  <path d="M12 24C15.24 24 17.96 22.92 19.95 21.08L16.08 18.06C15 18.79 13.62 19.22 12 19.22C8.87 19.22 6.22 17.11 5.27 14.28H1.27V17.38C3.25 21.32 7.31 24 12 24Z" fill="#34A853" />
-                  <path d="M5.27 14.29C5.03 13.56 4.89 12.79 4.89 12C4.89 11.21 5.03 10.45 5.27 9.71V6.62H1.27C0.46 8.23 0 10.06 0 12C0 13.94 0.46 15.77 1.27 17.38L5.27 14.29Z" fill="#FBBC05" />
-                  <path d="M12 4.78C13.76 4.78 15.34 5.39 16.58 6.58L20.04 3.12C17.96 1.18 15.24 0 12 0C7.31 0 3.25 2.68 1.27 6.62L5.27 9.71C6.22 6.89 8.87 4.78 12 4.78Z" fill="#EA4335" />
-                </svg>
+                <span>G</span>
                 <span>تسجيل الدخول عبر Google</span>
               </button>
 
-              <div className="footer-text">
-                ليس لديك حساب؟ <a href="mailto:rami0407@gmail.com" className="font-bold text-primary hover:underline">تواصل مع الإدارة</a>
+              <div className="mt-4 pt-4 border-t border-gray-100 text-center">
+                <p className="text-gray-600 mb-2">ليس لديك حساب؟</p>
+                <button
+                  onClick={() => { setIsRegistering(true); setError(''); }}
+                  className="text-primary font-bold hover:underline"
+                >
+                  إنشاء حساب جديد ✨
+                </button>
               </div>
             </div>
           </>
-        ) : (
+        ) : showForgotPassword ? (
+          /* FORGOT PASSWORD VIEW */
           <>
-            {/* Forgot Password View */}
             <div className="login-header">
               <div className="login-logo">
                 <span className="text-4xl">🔒</span>
@@ -309,6 +343,105 @@ export default function LoginPage() {
                     className="w-full text-center text-gray-500 hover:text-gray-700"
                   >
                     إلغاء والعودة
+                  </button>
+                </form>
+              )}
+            </div>
+          </>
+        ) : (
+          /* REGISTRATION VIEW */
+          <>
+            <div className="login-header">
+              <div className="login-logo">
+                <span className="text-4xl">📝</span>
+              </div>
+              <h1>إنشاء حساب جديد</h1>
+              <p>انضم إلى طاقم المدرسة المميز</p>
+            </div>
+
+            <div className="form-container">
+              {regStatus === 'success' ? (
+                <div className="text-center py-6 animate-fade-in">
+                  <div className="text-green-500 text-6xl mb-4">✅</div>
+                  <h3 className="text-2xl font-bold mb-2 text-gray-800">تم إرسال الطلب!</h3>
+                  <p className="text-gray-600 mb-6 leading-relaxed">
+                    شكراً لتسجيلك. حسابك الآن قيد المراجعة من قبل الإدارة.<br />
+                    سيتم تفعيل حسابك بعد الموافقة عليه.
+                  </p>
+                  <button
+                    onClick={() => { setIsRegistering(false); setRegStatus('idle'); }}
+                    className="submit-btn"
+                  >
+                    العودة للرئيسية
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleRegister}>
+                  {error && (
+                    <div className="error-message mb-4">
+                      {error}
+                    </div>
+                  )}
+
+                  <div className="input-group mb-4">
+                    <label className="input-label">الاسم الكامل</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="الاسم الثلاثي"
+                      value={regName}
+                      onChange={(e) => setRegName(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="input-group mb-4">
+                    <label className="input-label">البريد الإلكتروني</label>
+                    <input
+                      type="email"
+                      className="form-input"
+                      placeholder="example@school.edu"
+                      value={regEmail}
+                      onChange={(e) => setRegEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="input-group mb-4">
+                    <label className="input-label">رقم الهاتف</label>
+                    <input
+                      type="tel"
+                      className="form-input"
+                      placeholder="050xxxxxxx"
+                      value={regPhone}
+                      onChange={(e) => setRegPhone(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="input-group mb-6">
+                    <label className="input-label">كلمة المرور</label>
+                    <input
+                      type="password"
+                      className="form-input"
+                      placeholder="******"
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      required
+                      minLength={6}
+                    />
+                  </div>
+
+                  <button type="submit" className="submit-btn mb-4" disabled={regStatus === 'registering'}>
+                    {regStatus === 'registering' ? 'جاري التسجيل...' : 'إنشاء الحساب'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setIsRegistering(false); setError(''); }}
+                    className="w-full text-center text-gray-500 hover:text-gray-700 font-medium"
+                  >
+                    إلغاء والعودة لتسجيل الدخول
                   </button>
                 </form>
               )}

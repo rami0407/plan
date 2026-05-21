@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Groq from 'groq-sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 interface Suggestion {
     label: string;
@@ -16,8 +16,6 @@ interface AIAssistantProps {
     pageTitle?: string;
     suggestions?: Suggestion[];
 }
-
-
 
 export default function AIAssistant({ onClose, context, pageTitle, suggestions = [] }: AIAssistantProps) {
     const [messages, setMessages] = useState<{ role: 'user' | 'assistant' | 'system'; content: string }[]>([
@@ -47,28 +45,32 @@ export default function AIAssistant({ onClose, context, pageTitle, suggestions =
         try {
             let responseText = '';
 
-            const prompt = `
-            أنت مساعد تربوي ذكي وودود يعمل ضمن نظام إدارة المدارس.
-            السياق الحالي هو: صفحة ${pageTitle || 'عام'}
-            
-            سؤال المستخدم: ${content}
-            
-            أجب باللغة العربية بأسلوب مهني ومشجع. كن مختصراً ومباشراً.
-            `;
+            // Use Gemini AI
+            const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+            if (!apiKey) throw new Error('مفتاح Gemini API غير مبرمج. يرجى إضافة NEXT_PUBLIC_GEMINI_API_KEY إلى ملف الإعدادات البيئية.');
 
-            // Use Groq AI only
-            const apiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY;
-            if (!apiKey) throw new Error('مفتاح Groq API مفقود.');
-
-            const groq = new Groq({ apiKey, dangerouslyAllowBrowser: true });
-            const completion = await groq.chat.completions.create({
-                messages: [
-                    { role: 'system', content: 'أنت مساعد تربوي ذكي تتحدث العربية.' },
-                    { role: 'user', content: prompt }
-                ],
-                model: 'llama-3.3-70b-versatile',
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ 
+                model: 'gemini-1.5-flash',
+                systemInstruction: `أنت مساعد تربوي ذكي وودود يعمل ضمن نظام إدارة المدارس.
+السياق الحالي للمستخدم هو: صفحة "${pageTitle || 'عام'}".
+أجب باللغة العربية بأسلوب مهني وتربوي راقٍ ومشجع. كن مختصراً، مفيداً، ومباشراً في إجابتك.`,
             });
-            responseText = completion.choices[0]?.message?.content || '';
+
+            // Format previous chat history for Gemini (roles must be 'user' or 'model')
+            const history = messages
+                .filter(m => m.role !== 'system')
+                .map(m => ({
+                    role: m.role === 'assistant' ? 'model' as const : 'user' as const,
+                    parts: [{ text: m.content }],
+                }));
+
+            const chat = model.startChat({
+                history: history,
+            });
+
+            const result = await chat.sendMessage(content);
+            responseText = result.response.text();
 
             const aiResponse = {
                 role: 'assistant' as const,
@@ -117,9 +119,9 @@ export default function AIAssistant({ onClose, context, pageTitle, suggestions =
                     </button>
                 </div>
 
-                {/* Model Info - Groq Only */}
+                {/* Model Info - Gemini */}
                 <div className="flex bg-gradient-to-r from-indigo-600 to-purple-600 p-3 rounded-lg items-center justify-center gap-2">
-                    <span className="text-sm font-bold text-white">🚀 Powered by Groq AI</span>
+                    <span className="text-sm font-bold text-white">✨ مدعوم بواسطة Gemini AI</span>
                 </div>
             </div>
 
@@ -181,7 +183,7 @@ export default function AIAssistant({ onClose, context, pageTitle, suggestions =
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                        placeholder="اسأل المساعد (Groq AI)..."
+                        placeholder="اسأل المساعد الذكي (Gemini AI)..."
                         className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-6 py-4 pr-12 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all text-sm font-medium"
                     />
                     <button
@@ -192,7 +194,7 @@ export default function AIAssistant({ onClose, context, pageTitle, suggestions =
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 2L11 13"></path><path d="M22 2L15 22L11 13L2 9L22 2Z"></path></svg>
                     </button>
                 </div>
-                <p className="text-[10px] text-center text-gray-400 mt-4 font-medium">مدعوم بـ Groq AI ⚡</p>
+                <p className="text-[10px] text-center text-gray-400 mt-4 font-medium">مدعوم بـ Google Gemini ⚡</p>
             </div>
         </motion.div>
     );

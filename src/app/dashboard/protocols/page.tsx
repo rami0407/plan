@@ -14,7 +14,9 @@ import {
 import AIAssistant from '@/components/AIAssistant';
 
 function ProtocolsContent() {
-    const { user } = useAuth();
+    const { user, role } = useAuth();
+    const router = useRouter();
+    const isPrincipal = role === 'admin';
     const searchParams = useSearchParams();
 
     // Determine context
@@ -26,9 +28,24 @@ function ProtocolsContent() {
     const [showAI, setShowAI] = useState(false);
     const [activeTab, setActiveTab] = useState<'new' | 'drafts' | 'sent'>('new');
     const [editingProtocol, setEditingProtocol] = useState<MeetingProtocol | null>(null);
+    const [feedbackText, setFeedbackText] = useState('');
 
     const [selectedYear, setSelectedYear] = useState<string>('2026');
     const years = Array.from({ length: 15 }, (_, i) => (2026 + i).toString());
+
+    useEffect(() => {
+        if (isPrincipal) {
+            setActiveTab('sent');
+        }
+    }, [isPrincipal]);
+
+    useEffect(() => {
+        if (editingProtocol) {
+            setFeedbackText(editingProtocol.feedback || '');
+        } else {
+            setFeedbackText('');
+        }
+    }, [editingProtocol]);
 
     useEffect(() => {
         if (effectiveCoordinatorId) {
@@ -142,6 +159,32 @@ function ProtocolsContent() {
         }
     };
 
+    const handleSaveProtocolFeedback = async () => {
+        if (!editingProtocol || !editingProtocol.id) return;
+        try {
+            await updateProtocol(editingProtocol.id, { feedback: feedbackText });
+            // Update local state
+            setMeetingProtocols(prev => prev.map(p => p.id === editingProtocol.id ? { ...p, feedback: feedbackText } : p));
+            setEditingProtocol(prev => prev ? { ...prev, feedback: feedbackText } : null);
+
+            // Notify Coordinator
+            await createNotification({
+                recipientId: effectiveCoordinatorId!,
+                title: 'ملاحظات على بروتوكول الجلسة',
+                message: `قام المدير بإضافة ملاحظات على بروتوكول الجلسة "${editingProtocol.topic || 'بدون عنوان'}": "${feedbackText.substring(0, 50)}..."`,
+                link: `/dashboard/protocols?coordinatorId=${effectiveCoordinatorId}`,
+                type: 'general_message',
+                senderName: 'المدير',
+                senderRole: 'principal'
+            });
+
+            alert('✅ تم حفظ وإرسال الملاحظات بنجاح');
+        } catch (error) {
+            console.error('Error saving protocol feedback:', error);
+            alert('❌ حدث خطأ أثناء حفظ الملاحظات');
+        }
+    };
+
     const filteredProtocols = meetingProtocols.filter(p => {
         // Filter by year: if p.year exists check match, else match if selectedYear is 2026 (default)
         const protocolYear = p.year || '2026';
@@ -171,36 +214,32 @@ function ProtocolsContent() {
                             {years.map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
                     </div>
-                    <button
-                        onClick={() => setShowAI(true)}
-                        className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold shadow-lg hover:scale-105 transition-all flex items-center gap-2 animate-pulse"
-                    >
-                        <span>✨</span> المساعد الذكي
-                    </button>
                 </div>
             </div>
 
             {/* Tabs */}
-            <div className="flex bg-white p-1 rounded-2xl shadow-sm mb-8 w-fit mx-auto border border-gray-100">
-                <button
-                    onClick={() => { setActiveTab('new'); handleNewProtocol(); }}
-                    className={`px-8 py-3 rounded-xl text-lg font-bold transition-all ${activeTab === 'new' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-50'}`}
-                >
-                    + بروتوكول جديد
-                </button>
-                <button
-                    onClick={() => { setActiveTab('drafts'); setEditingProtocol(null); }}
-                    className={`px-8 py-3 rounded-xl text-lg font-bold transition-all ${activeTab === 'drafts' ? 'bg-amber-500 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-50'}`}
-                >
-                    📁 المسودات ({meetingProtocols.filter(p => p.status === 'draft').length})
-                </button>
-                <button
-                    onClick={() => { setActiveTab('sent'); setEditingProtocol(null); }}
-                    className={`px-8 py-3 rounded-xl text-lg font-bold transition-all ${activeTab === 'sent' ? 'bg-green-600 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-50'}`}
-                >
-                    📩 الأرشيف المرسل ({meetingProtocols.filter(p => p.status === 'sent').length})
-                </button>
-            </div>
+            {!isPrincipal && (
+                <div className="flex bg-white p-1 rounded-2xl shadow-sm mb-8 w-fit mx-auto border border-gray-100">
+                    <button
+                        onClick={() => { setActiveTab('new'); handleNewProtocol(); }}
+                        className={`px-8 py-3 rounded-xl text-lg font-bold transition-all ${activeTab === 'new' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-50'}`}
+                    >
+                        + بروتوكول جديد
+                    </button>
+                    <button
+                        onClick={() => { setActiveTab('drafts'); setEditingProtocol(null); }}
+                        className={`px-8 py-3 rounded-xl text-lg font-bold transition-all ${activeTab === 'drafts' ? 'bg-amber-500 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-50'}`}
+                    >
+                        📁 المسودات ({meetingProtocols.filter(p => p.status === 'draft').length})
+                    </button>
+                    <button
+                        onClick={() => { setActiveTab('sent'); setEditingProtocol(null); }}
+                        className={`px-8 py-3 rounded-xl text-lg font-bold transition-all ${activeTab === 'sent' ? 'bg-green-600 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-50'}`}
+                    >
+                        📩 الأرشيف المرسل ({meetingProtocols.filter(p => p.status === 'sent').length})
+                    </button>
+                </div>
+            )}
 
             {showAI && (
                 <AIAssistant
@@ -214,16 +253,16 @@ function ProtocolsContent() {
             )}
 
             {/* Content Area */}
-            {activeTab === 'new' || (editingProtocol && activeTab === 'drafts') ? (
-                // Editor Mode
+            {activeTab === 'new' || editingProtocol ? (
+                // Editor Mode / Viewer Mode
                 <div className="glass-panel p-8 animate-fade-in relative">
                     <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-t-2xl"></div>
                     <div className="mb-6 flex justify-between items-center">
                         <h2 className="text-2xl font-black text-gray-800">
-                            {editingProtocol?.id === 'temp_new' ? 'تحرير بروتوكول جديد' : 'تعديل مسودة'}
+                            {editingProtocol?.id === 'temp_new' ? 'تحرير بروتوكول جديد' : isPrincipal || editingProtocol?.status === 'sent' ? 'عرض بروتوكول الجلسة' : 'تعديل مسودة'}
                         </h2>
                         <div className="flex items-center gap-3">
-                            {editingProtocol?.id !== 'temp_new' && (
+                            {!isPrincipal && editingProtocol?.status !== 'sent' && editingProtocol?.id !== 'temp_new' && (
                                 <button
                                     onClick={(e) => handleDelete(e, editingProtocol!.id!)}
                                     className="p-2 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
@@ -237,11 +276,9 @@ function ProtocolsContent() {
                                     </svg>
                                 </button>
                             )}
-                            {activeTab === 'drafts' && (
-                                <button onClick={() => setEditingProtocol(null)} className="text-gray-500 hover:text-gray-700 font-bold">
-                                    ❌ إغلاق
-                                </button>
-                            )}
+                            <button onClick={() => setEditingProtocol(null)} className="text-gray-500 hover:text-gray-700 font-bold px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">
+                                ❌ إغلاق
+                            </button>
                         </div>
                     </div>
 
@@ -255,6 +292,7 @@ function ProtocolsContent() {
                                         type="date"
                                         value={editingProtocol.date}
                                         onChange={(e) => setEditingProtocol({ ...editingProtocol, date: e.target.value })}
+                                        readOnly={isPrincipal || editingProtocol.status === 'sent'}
                                         className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-200 outline-none transition-all"
                                     />
                                 </div>
@@ -263,6 +301,7 @@ function ProtocolsContent() {
                                     <select
                                         value={editingProtocol.type}
                                         onChange={(e) => setEditingProtocol({ ...editingProtocol, type: e.target.value as any })}
+                                        disabled={isPrincipal || editingProtocol.status === 'sent'}
                                         className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-200 outline-none transition-all"
                                     >
                                         <option value="principal">👔 جلسة مع المدير</option>
@@ -276,6 +315,7 @@ function ProtocolsContent() {
                                         type="text"
                                         value={editingProtocol.participants}
                                         onChange={(e) => setEditingProtocol({ ...editingProtocol, participants: e.target.value })}
+                                        readOnly={isPrincipal || editingProtocol.status === 'sent'}
                                         className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-200 outline-none transition-all"
                                         placeholder="الأسماء..."
                                     />
@@ -288,46 +328,97 @@ function ProtocolsContent() {
                                     type="text"
                                     value={editingProtocol.topic}
                                     onChange={(e) => setEditingProtocol({ ...editingProtocol, topic: e.target.value })}
+                                    readOnly={isPrincipal || editingProtocol.status === 'sent'}
                                     className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-200 outline-none transition-all font-bold text-lg"
                                     placeholder="اكتب موضوع الجلسة هنا..."
                                 />
                             </div>
 
                             <div className="grid grid-cols-1 gap-6 mb-8">
-                                <textarea
-                                    value={editingProtocol.summary}
-                                    onChange={(e) => setEditingProtocol({ ...editingProtocol, summary: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-200 outline-none transition-all h-32 resize-none"
-                                    placeholder="ملخص الجلسة..."
-                                />
-                                <textarea
-                                    value={editingProtocol.decisions}
-                                    onChange={(e) => setEditingProtocol({ ...editingProtocol, decisions: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-200 outline-none transition-all h-32 resize-none"
-                                    placeholder="القرارات والتوصيات..."
-                                />
-                                <textarea
-                                    value={editingProtocol.nextSteps}
-                                    onChange={(e) => setEditingProtocol({ ...editingProtocol, nextSteps: e.target.value })}
-                                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-200 outline-none transition-all h-32 resize-none"
-                                    placeholder="الخطوات القادمة..."
-                                />
+                                <div>
+                                    <label className="block text-sm font-bold mb-2 text-gray-700 font-bold">ملخص الجلسة</label>
+                                    <textarea
+                                        value={editingProtocol.summary}
+                                        onChange={(e) => setEditingProtocol({ ...editingProtocol, summary: e.target.value })}
+                                        readOnly={isPrincipal || editingProtocol.status === 'sent'}
+                                        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-200 outline-none transition-all h-32 resize-y"
+                                        placeholder="ملخص الجلسة..."
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold mb-2 text-gray-700 font-bold">القرارات والتوصيات</label>
+                                    <textarea
+                                        value={editingProtocol.decisions}
+                                        onChange={(e) => setEditingProtocol({ ...editingProtocol, decisions: e.target.value })}
+                                        readOnly={isPrincipal || editingProtocol.status === 'sent'}
+                                        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-200 outline-none transition-all h-32 resize-y"
+                                        placeholder="القرارات والتوصيات..."
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold mb-2 text-gray-700 font-bold">الخطوات القادمة</label>
+                                    <textarea
+                                        value={editingProtocol.nextSteps}
+                                        onChange={(e) => setEditingProtocol({ ...editingProtocol, nextSteps: e.target.value })}
+                                        readOnly={isPrincipal || editingProtocol.status === 'sent'}
+                                        className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-200 outline-none transition-all h-32 resize-y"
+                                        placeholder="الخطوات القادمة..."
+                                    />
+                                </div>
                             </div>
 
-                            <div className="flex gap-4 border-t pt-6">
-                                <button
-                                    onClick={handleSaveDraft}
-                                    className="flex-1 bg-amber-500 text-white py-3 rounded-xl font-bold hover:bg-amber-600 transition-colors flex justify-center items-center gap-2 shadow-lg shadow-amber-200"
-                                >
-                                    💾 حفظ كمسودة
-                                </button>
-                                <button
-                                    onClick={handleSend}
-                                    className="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-colors flex justify-center items-center gap-2 shadow-lg shadow-green-200"
-                                >
-                                    🚀 إرسال للمدير
-                                </button>
-                            </div>
+                            {/* Manager Feedback Section */}
+                            {isPrincipal ? (
+                                <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-6 mt-6 mb-6">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <span className="text-2xl">📝</span>
+                                        <h3 className="text-xl font-bold text-amber-800">ملاحظات وتوجيهات المدير</h3>
+                                    </div>
+                                    <textarea
+                                        value={feedbackText}
+                                        onChange={(e) => setFeedbackText(e.target.value)}
+                                        className="w-full min-h-[100px] p-4 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 bg-white text-lg font-medium resize-y mb-4"
+                                        placeholder="اكتب ملاحظاتك وتوجيهاتك للمركّز هنا..."
+                                    />
+                                    <div className="flex justify-end">
+                                        <button
+                                            onClick={handleSaveProtocolFeedback}
+                                            className="btn bg-amber-600 hover:bg-amber-700 text-white px-6 py-2 flex items-center gap-2"
+                                        >
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                            حفظ وإرسال تعقيب للمركّز
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                editingProtocol.feedback && (
+                                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mt-6 mb-6">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <span className="text-2xl">📝</span>
+                                            <h3 className="text-xl font-bold text-amber-800">ملاحظات المدير</h3>
+                                        </div>
+                                        <p className="text-lg text-gray-800 whitespace-pre-wrap">{editingProtocol.feedback}</p>
+                                    </div>
+                                )
+                            )}
+
+                            {/* Buttons */}
+                            {!isPrincipal && editingProtocol.status !== 'sent' && (
+                                <div className="flex gap-4 border-t pt-6">
+                                    <button
+                                        onClick={handleSaveDraft}
+                                        className="flex-1 bg-amber-500 text-white py-3 rounded-xl font-bold hover:bg-amber-600 transition-colors flex justify-center items-center gap-2 shadow-lg shadow-amber-200"
+                                    >
+                                        💾 حفظ كمسودة
+                                    </button>
+                                    <button
+                                        onClick={handleSend}
+                                        className="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-colors flex justify-center items-center gap-2 shadow-lg shadow-green-200"
+                                    >
+                                        🚀 إرسال للمدير
+                                    </button>
+                                </div>
+                            )}
                         </>
                     )}
                 </div>
@@ -338,7 +429,7 @@ function ProtocolsContent() {
                         filteredProtocols.map(protocol => (
                             <div
                                 key={protocol.id}
-                                onClick={() => activeTab === 'drafts' ? setEditingProtocol(protocol) : null}
+                                onClick={() => setEditingProtocol(protocol)}
                                 className={`bg-white rounded-2xl p-6 shadow-sm border-2 transition-all cursor-pointer group hover:-translate-y-1 hover:shadow-md
                                     ${activeTab === 'drafts' ? 'border-amber-100 hover:border-amber-300' : 'border-green-50 hover:border-green-300'}
                                 `}
@@ -354,21 +445,23 @@ function ProtocolsContent() {
                                 <div className="text-sm text-gray-500 mb-4 flex items-center justify-between">
                                     <span className="flex items-center gap-2">📅 {protocol.date}</span>
 
-                                    <button
-                                        onClick={(e) => handleDelete(e, protocol.id!)}
-                                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100"
-                                        title="حذف"
-                                    >
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <polyline points="3 6 5 6 21 6" />
-                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                        </svg>
-                                    </button>
+                                    {!isPrincipal && activeTab === 'drafts' && (
+                                        <button
+                                            onClick={(e) => handleDelete(e, protocol.id!)}
+                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                                            title="حذف"
+                                        >
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <polyline points="3 6 5 6 21 6" />
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                            </svg>
+                                        </button>
+                                    )}
                                 </div>
 
                                 {activeTab === 'sent' && (
                                     <div className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded inline-block">
-                                        تم الإرسال
+                                        تم الإرسال - انقر للعرض
                                     </div>
                                 )}
                                 {activeTab === 'drafts' && (

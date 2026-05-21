@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 
 // Tag Input Component for Group Level
-const TagInput = ({ value, onChange, placeholder }: { value: string, onChange: (val: string) => void, placeholder: string }) => {
+const TagInput = ({ value, onChange, placeholder, readOnly }: { value: string, onChange: (val: string) => void, placeholder: string, readOnly?: boolean }) => {
     const [inputValue, setInputValue] = useState('');
 
     const tags = value ? value.split(',').map(t => t.trim()).filter(Boolean) : [];
@@ -36,30 +36,35 @@ const TagInput = ({ value, onChange, placeholder }: { value: string, onChange: (
             {tags.map((tag, index) => (
                 <span key={index} className="bg-blue-100 text-blue-800 text-sm font-semibold px-2 py-1 rounded-md flex items-center gap-1">
                     {tag}
-                    <button onClick={() => removeTag(index)} className="hover:text-blue-600 font-bold">×</button>
+                    {!readOnly && <button onClick={() => removeTag(index)} className="hover:text-blue-600 font-bold">×</button>}
                 </span>
             ))}
-            <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="flex-grow outline-none bg-transparent min-w-[120px]"
-                placeholder={tags.length === 0 ? placeholder : ''}
-            />
+            {!readOnly && (
+                <input
+                    type="text"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="flex-grow outline-none bg-transparent min-w-[120px]"
+                    placeholder={tags.length === 0 ? placeholder : ''}
+                />
+            )}
         </div>
     );
 };
 
-export default function InterventionPage() {
+function InterventionContent() {
     const router = useRouter();
-    const { user } = useAuth();
+    const { user, role } = useAuth();
+    const isPrincipal = role === 'admin';
     const searchParams = useSearchParams();
 
     // In a real app, we might check if user is admin before allowing query param override. 
     // For now, if param exists, use it (Principal view), else use logged-in user (Coordinator view).
     const paramCoordinatorId = searchParams.get('coordinatorId');
     const paramYear = searchParams.get('year');
+    const paramGrade = searchParams.get('grade');
+    const paramSection = searchParams.get('section');
     const effectiveCoordinatorId = paramCoordinatorId || user?.uid;
 
     const [managerFeedback, setManagerFeedback] = useState('');
@@ -82,35 +87,39 @@ export default function InterventionPage() {
         }
 
         try {
-            const { createNotification } = await import('@/lib/firestoreService');
+            const { createNotification, updateInterventionPlan } = await import('@/lib/firestoreService');
+
+            // Save feedback to all loaded documents for this Grade, Section, Year
+            const levels = ['individual', 'group', 'class'] as const;
+            for (const level of levels) {
+                if (docIds[level]) {
+                    await updateInterventionPlan(docIds[level]!, { feedback: managerFeedback });
+                }
+            }
 
             // Create Notification for the Coordinator
             await createNotification({
                 recipientId: effectiveCoordinatorId,
                 title: 'ملاحظات مدير المدرسة',
                 message: `قام المدير بإضافة تعقيب على خطة التدخل (${selectedYear}) الخاصة بطلابك (${selectedGrade} شعبه ${selectedSection}): "${managerFeedback.substring(0, 50)}..."`,
-                link: `/dashboard/intervention?grade=${selectedGrade}&section=${selectedSection}&year=${selectedYear}`,
+                link: `/dashboard/intervention?grade=${selectedGrade}&section=${selectedSection}&year=${selectedYear}&coordinatorId=${effectiveCoordinatorId}`,
                 type: 'intervention_update',
                 senderName: 'الإدارة',
                 senderRole: 'principal'
             });
 
-            // Ideally we should also save the feedback string to a "Feedback" collection or update the Plan document.
-            // For now, the notification serves as the delivery mechanism.
-
-            setManagerFeedback('');
             alert('✅ تم إرسال الملاحظات للمركز بنجاح');
         } catch (error) {
-            console.error('Error sending notification:', error);
+            console.error('Error sending notification/saving feedback:', error);
             alert('❌ حدث خطأ أثناء الإرسال');
         }
     };
 
     useEffect(() => {
-        if (paramYear) {
-            setSelectedYear(paramYear);
-        }
-    }, [paramYear]);
+        if (paramYear) setSelectedYear(paramYear);
+        if (paramGrade) setSelectedGrade(paramGrade);
+        if (paramSection) setSelectedSection(paramSection);
+    }, [paramYear, paramGrade, paramSection]);
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -130,9 +139,6 @@ export default function InterventionPage() {
     });
 
     useEffect(() => {
-        // Automatically select distinct if available in URL or just load
-        // But for now, we wait for user selection or select defaults?
-        // Let's just create empty state.
         if (effectiveCoordinatorId && selectedGrade && selectedSection) {
             loadPlans();
         } else {
@@ -158,8 +164,6 @@ export default function InterventionPage() {
             const plans = allPlans.filter((p: any) => {
                 const sameGrade = p.grade === selectedGrade;
                 const sameSection = p.section === selectedSection;
-                // Backward compatibility: if p.year is undefined, assume '2026' or treat as current context if user selects 2026
-                // For simplified logic: match p.year if exists, else match if selectedYear is 2026 (assuming old data is for 2026)
                 const planYear = p.year || '2026';
                 const sameYear = planYear === selectedYear;
 
@@ -172,22 +176,26 @@ export default function InterventionPage() {
                 class: [] as any[]
             };
             const newDocIds: any = {};
+            let loadedFeedback = '';
 
             plans.forEach(plan => {
                 if (plan.level && newPlans[plan.level as keyof typeof newPlans]) {
                     newPlans[plan.level as keyof typeof newPlans] = (plan.students || []).map((s: any) => ({
                         id: s.id || Math.random().toString(),
                         studentName: s.studentName || '',
-                        currentFunctioning: s.currentFunctioning || s.currentGrade || '', // Migration: currentGrade -> currentFunctioning
-                        goals: s.goals || s.targetGoal || '', // Migration: targetGoal -> goals
-                        operationalGoals: s.operationalGoals || s.assessmentMethod || '', // Migration: assessmentMethod -> operationalGoals
+                        currentFunctioning: s.currentFunctioning || s.currentGrade || '',
+                        goals: s.goals || s.targetGoal || '',
+                        operationalGoals: s.operationalGoals || s.assessmentMethod || '',
                         duration: s.duration || '',
                         resources: s.resources || '',
                         evaluation1: s.evaluation1 || '',
                         evaluation2: s.evaluation2 || '',
-                        finalEvaluation: s.finalEvaluation || s.notes || '' // Migration: notes -> finalEvaluation
+                        finalEvaluation: s.finalEvaluation || s.notes || ''
                     }));
                     newDocIds[plan.level] = plan.id;
+                    if (plan.feedback) {
+                        loadedFeedback = plan.feedback;
+                    }
                 }
             });
 
@@ -198,6 +206,7 @@ export default function InterventionPage() {
 
             setInterventionPlans(newPlans);
             setDocIds(newDocIds);
+            setManagerFeedback(loadedFeedback);
         } catch (error) {
             console.error('Error loading plans:', error);
             alert('خطأ في تحميل الخطط');
@@ -356,14 +365,21 @@ export default function InterventionPage() {
                                 <p className="text-gray-600">نظام متابعة تقدم الطلاب على مستويات مختلفة</p>
                             </div>
                         </div>
-                        <button onClick={exportToPDF} className="btn btn-primary px-6 py-3 print:hidden">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                <polyline points="7 10 12 15 17 10" />
-                                <line x1="12" y1="15" x2="12" y2="3" />
-                            </svg>
-                            تنزيل PDF
-                        </button>
+                        <div className="flex gap-3 print:hidden">
+                            {isPrincipal && (
+                                <button onClick={() => router.back()} className="btn btn-ghost border border-gray-300 px-6 py-3 font-bold text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                                    &larr; عودة
+                                </button>
+                            )}
+                            <button onClick={exportToPDF} className="btn btn-primary px-6 py-3">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
+                                تنزيل PDF
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -435,49 +451,53 @@ export default function InterventionPage() {
                                             <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-20">הערכה 1</th>
                                             <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-20">הערכה 2</th>
                                             <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-20">הערכה סופית</th>
-                                            <th className="border border-gray-400 print:hidden w-10"></th>
+                                            {!isPrincipal && <th className="border border-gray-400 print:hidden w-10"></th>}
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {interventionPlans.individual.map(row => (
                                             <tr key={row.id} className="hover:bg-blue-50 transition-colors">
                                                 <td className="border border-gray-400 print:border-black p-1">
-                                                    <input type="text" value={row.studentName} onChange={(e) => updateInterventionRow('individual', row.id, 'studentName', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.studentName} onChange={(e) => updateInterventionRow('individual', row.id, 'studentName', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1">
-                                                    <input type="text" value={row.currentFunctioning} onChange={(e) => updateInterventionRow('individual', row.id, 'currentFunctioning', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.currentFunctioning} onChange={(e) => updateInterventionRow('individual', row.id, 'currentFunctioning', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1">
-                                                    <input type="text" value={row.goals} onChange={(e) => updateInterventionRow('individual', row.id, 'goals', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.goals} onChange={(e) => updateInterventionRow('individual', row.id, 'goals', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1">
-                                                    <input type="text" value={row.operationalGoals} onChange={(e) => updateInterventionRow('individual', row.id, 'operationalGoals', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.operationalGoals} onChange={(e) => updateInterventionRow('individual', row.id, 'operationalGoals', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1">
-                                                    <input type="text" value={row.duration} onChange={(e) => updateInterventionRow('individual', row.id, 'duration', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.duration} onChange={(e) => updateInterventionRow('individual', row.id, 'duration', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1">
-                                                    <input type="text" value={row.resources} onChange={(e) => updateInterventionRow('individual', row.id, 'resources', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.resources} onChange={(e) => updateInterventionRow('individual', row.id, 'resources', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1">
-                                                    <input type="text" value={row.evaluation1} onChange={(e) => updateInterventionRow('individual', row.id, 'evaluation1', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.evaluation1} onChange={(e) => updateInterventionRow('individual', row.id, 'evaluation1', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1">
-                                                    <input type="text" value={row.evaluation2} onChange={(e) => updateInterventionRow('individual', row.id, 'evaluation2', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.evaluation2} onChange={(e) => updateInterventionRow('individual', row.id, 'evaluation2', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1">
-                                                    <input type="text" value={row.finalEvaluation} onChange={(e) => updateInterventionRow('individual', row.id, 'finalEvaluation', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.finalEvaluation} onChange={(e) => updateInterventionRow('individual', row.id, 'finalEvaluation', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
-                                                <td className="border border-gray-400 print:hidden p-1 text-center">
-                                                    <button onClick={() => deleteInterventionRow('individual', row.id)} className="text-red-600 hover:text-red-800 text-xl font-bold" title="حذف">×</button>
-                                                </td>
+                                                {!isPrincipal && (
+                                                    <td className="border border-gray-400 print:hidden p-1 text-center">
+                                                        <button onClick={() => deleteInterventionRow('individual', row.id)} className="text-red-600 hover:text-red-800 text-xl font-bold" title="حذف">×</button>
+                                                    </td>
+                                                )}
                                             </tr>
                                         ))}
-                                        <tr className="print:hidden bg-blue-50">
-                                            <td colSpan={6} className="border border-gray-400 p-3 text-center">
-                                                <button onClick={() => addInterventionRow('individual')} className="text-blue-700 hover:text-blue-900 font-bold text-base">+ إضافة طالب</button>
-                                            </td>
-                                        </tr>
+                                        {!isPrincipal && (
+                                            <tr className="print:hidden bg-blue-50">
+                                                <td colSpan={10} className="border border-gray-400 p-3 text-center">
+                                                    <button onClick={() => addInterventionRow('individual')} className="text-blue-700 hover:text-blue-900 font-bold text-base">+ إضافة طالب</button>
+                                                </td>
+                                            </tr>
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -500,7 +520,7 @@ export default function InterventionPage() {
                                             <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-20">הערכה 1</th>
                                             <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-20">הערכה 2</th>
                                             <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-20">הערכה סופית</th>
-                                            <th className="border border-gray-400 print:hidden w-10"></th>
+                                            {!isPrincipal && <th className="border border-gray-400 print:hidden w-10"></th>}
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -511,42 +531,47 @@ export default function InterventionPage() {
                                                         value={row.studentName}
                                                         onChange={(val) => updateInterventionRow('group', row.id, 'studentName', val)}
                                                         placeholder="اضغط Enter..."
+                                                        readOnly={isPrincipal}
                                                     />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1 align-top">
-                                                    <input type="text" value={row.currentFunctioning} onChange={(e) => updateInterventionRow('group', row.id, 'currentFunctioning', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.currentFunctioning} onChange={(e) => updateInterventionRow('group', row.id, 'currentFunctioning', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1 align-top">
-                                                    <input type="text" value={row.goals} onChange={(e) => updateInterventionRow('group', row.id, 'goals', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.goals} onChange={(e) => updateInterventionRow('group', row.id, 'goals', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1 align-top">
-                                                    <input type="text" value={row.operationalGoals} onChange={(e) => updateInterventionRow('group', row.id, 'operationalGoals', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.operationalGoals} onChange={(e) => updateInterventionRow('group', row.id, 'operationalGoals', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1 align-top">
-                                                    <input type="text" value={row.duration} onChange={(e) => updateInterventionRow('group', row.id, 'duration', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.duration} onChange={(e) => updateInterventionRow('group', row.id, 'duration', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1 align-top">
-                                                    <input type="text" value={row.resources} onChange={(e) => updateInterventionRow('group', row.id, 'resources', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.resources} onChange={(e) => updateInterventionRow('group', row.id, 'resources', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1 align-top">
-                                                    <input type="text" value={row.evaluation1} onChange={(e) => updateInterventionRow('group', row.id, 'evaluation1', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.evaluation1} onChange={(e) => updateInterventionRow('group', row.id, 'evaluation1', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1 align-top">
-                                                    <input type="text" value={row.evaluation2} onChange={(e) => updateInterventionRow('group', row.id, 'evaluation2', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.evaluation2} onChange={(e) => updateInterventionRow('group', row.id, 'evaluation2', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1 align-top">
-                                                    <input type="text" value={row.finalEvaluation} onChange={(e) => updateInterventionRow('group', row.id, 'finalEvaluation', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.finalEvaluation} onChange={(e) => updateInterventionRow('group', row.id, 'finalEvaluation', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
-                                                <td className="border border-gray-400 print:hidden p-1 text-center align-top">
-                                                    <button onClick={() => deleteInterventionRow('group', row.id)} className="text-red-600 hover:text-red-800 text-xl font-bold" title="حذف">×</button>
-                                                </td>
+                                                {!isPrincipal && (
+                                                    <td className="border border-gray-400 print:hidden p-1 text-center align-top">
+                                                        <button onClick={() => deleteInterventionRow('group', row.id)} className="text-red-600 hover:text-red-800 text-xl font-bold" title="حذف">×</button>
+                                                    </td>
+                                                )}
                                             </tr>
                                         ))}
-                                        <tr className="print:hidden bg-green-50">
-                                            <td colSpan={10} className="border border-gray-400 p-2 text-center">
-                                                <button onClick={() => addInterventionRow('group')} className="text-green-700 hover:text-green-900 font-bold text-sm">+ إضافة مجموعة</button>
-                                            </td>
-                                        </tr>
+                                        {!isPrincipal && (
+                                            <tr className="print:hidden bg-green-50">
+                                                <td colSpan={10} className="border border-gray-400 p-2 text-center">
+                                                    <button onClick={() => addInterventionRow('group')} className="text-green-700 hover:text-green-900 font-bold text-sm">+ إضافة مجموعة</button>
+                                                </td>
+                                            </tr>
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -568,49 +593,53 @@ export default function InterventionPage() {
                                             <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-20">הערכה 1</th>
                                             <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-20">הערכה 2</th>
                                             <th className="border border-gray-400 print:border-black p-2 text-right font-bold w-20">הערכה סופית</th>
-                                            <th className="border border-gray-400 print:hidden w-10"></th>
+                                            {!isPrincipal && <th className="border border-gray-400 print:hidden w-10"></th>}
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {interventionPlans.class.map(row => (
                                             <tr key={row.id} className="hover:bg-purple-50 transition-colors">
                                                 <td className="border border-gray-400 print:border-black p-1">
-                                                    <input type="text" value={row.studentName} onChange={(e) => updateInterventionRow('class', row.id, 'studentName', e.target.value)} className={inputClass} placeholder="مثال: الخامس أ" />
+                                                    <input type="text" value={row.studentName} onChange={(e) => updateInterventionRow('class', row.id, 'studentName', e.target.value)} className={inputClass} placeholder="مثال: الخامس أ" readOnly={isPrincipal} />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1">
-                                                    <input type="text" value={row.currentFunctioning} onChange={(e) => updateInterventionRow('class', row.id, 'currentFunctioning', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.currentFunctioning} onChange={(e) => updateInterventionRow('class', row.id, 'currentFunctioning', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1">
-                                                    <input type="text" value={row.goals} onChange={(e) => updateInterventionRow('class', row.id, 'goals', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.goals} onChange={(e) => updateInterventionRow('class', row.id, 'goals', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1">
-                                                    <input type="text" value={row.operationalGoals} onChange={(e) => updateInterventionRow('class', row.id, 'operationalGoals', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.operationalGoals} onChange={(e) => updateInterventionRow('class', row.id, 'operationalGoals', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1">
-                                                    <input type="text" value={row.duration} onChange={(e) => updateInterventionRow('class', row.id, 'duration', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.duration} onChange={(e) => updateInterventionRow('class', row.id, 'duration', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1">
-                                                    <input type="text" value={row.resources} onChange={(e) => updateInterventionRow('class', row.id, 'resources', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.resources} onChange={(e) => updateInterventionRow('class', row.id, 'resources', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1">
-                                                    <input type="text" value={row.evaluation1} onChange={(e) => updateInterventionRow('class', row.id, 'evaluation1', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.evaluation1} onChange={(e) => updateInterventionRow('class', row.id, 'evaluation1', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1">
-                                                    <input type="text" value={row.evaluation2} onChange={(e) => updateInterventionRow('class', row.id, 'evaluation2', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.evaluation2} onChange={(e) => updateInterventionRow('class', row.id, 'evaluation2', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
                                                 <td className="border border-gray-400 print:border-black p-1">
-                                                    <input type="text" value={row.finalEvaluation} onChange={(e) => updateInterventionRow('class', row.id, 'finalEvaluation', e.target.value)} className={inputClass} />
+                                                    <input type="text" value={row.finalEvaluation} onChange={(e) => updateInterventionRow('class', row.id, 'finalEvaluation', e.target.value)} className={inputClass} readOnly={isPrincipal} />
                                                 </td>
-                                                <td className="border border-gray-400 print:hidden p-1 text-center">
-                                                    <button onClick={() => deleteInterventionRow('class', row.id)} className="text-red-600 hover:text-red-800 text-xl font-bold" title="حذف">×</button>
-                                                </td>
+                                                {!isPrincipal && (
+                                                    <td className="border border-gray-400 print:hidden p-1 text-center">
+                                                        <button onClick={() => deleteInterventionRow('class', row.id)} className="text-red-600 hover:text-red-800 text-xl font-bold" title="حذف">×</button>
+                                                    </td>
+                                                )}
                                             </tr>
                                         ))}
-                                        <tr className="print:hidden bg-purple-50">
-                                            <td colSpan={10} className="border border-gray-400 p-2 text-center">
-                                                <button onClick={() => addInterventionRow('class')} className="text-purple-700 hover:text-purple-900 font-bold text-sm">+ إضافة صف</button>
-                                            </td>
-                                        </tr>
+                                        {!isPrincipal && (
+                                            <tr className="print:hidden bg-purple-50">
+                                                <td colSpan={10} className="border border-gray-400 p-2 text-center">
+                                                    <button onClick={() => addInterventionRow('class')} className="text-purple-700 hover:text-purple-900 font-bold text-sm">+ إضافة صف</button>
+                                                </td>
+                                            </tr>
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -626,7 +655,7 @@ export default function InterventionPage() {
                         <span className="text-3xl">📝</span>
                         <h3 className="text-2xl font-bold text-amber-800">ملاحظات المدير / الطاقم الإداري</h3>
                     </div>
-                    {user?.email === 'rami0407@gmail.com' || user?.email === 'admin@school.edu' ? (
+                    {isPrincipal ? (
                         <>
                             <textarea
                                 value={managerFeedback}
@@ -656,28 +685,38 @@ export default function InterventionPage() {
                 </div>
 
                 {/* Action Bar */}
-                <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white p-5 rounded-2xl shadow-2xl border-3 border-primary/20 flex gap-4 z-50 print:hidden">
-                    <button onClick={() => router.back()} className="btn btn-ghost px-6 py-3 text-lg">
-                        إلغاء
-                    </button>
-                    <button
-                        onClick={handleSendToPrincipal}
-                        disabled={saving}
-                        className="btn bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg disabled:opacity-50 flex items-center gap-2 shadow-lg"
-                    >
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 2L11 13"></path><path d="M22 2L15 22L11 13L2 9L22 2Z"></path></svg>
-                        إرسال للمدير
-                    </button>
-                    <button
-                        onClick={handleSavePlans}
-                        disabled={saving}
-                        className="btn btn-primary px-8 py-3 text-lg disabled:opacity-50 flex items-center gap-2 shadow-lg"
-                    >
-                        {saving && <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>}
-                        {saving ? 'جارٍ الحفظ...' : 'حفظ خطة التدخل'}
-                    </button>
-                </div>
+                {!isPrincipal && (
+                    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white p-5 rounded-2xl shadow-2xl border-3 border-primary/20 flex gap-4 z-50 print:hidden">
+                        <button onClick={() => router.back()} className="btn btn-ghost px-6 py-3 text-lg">
+                            إلغاء
+                        </button>
+                        <button
+                            onClick={handleSendToPrincipal}
+                            disabled={saving}
+                            className="btn bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg disabled:opacity-50 flex items-center gap-2 shadow-lg"
+                        >
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 2L11 13"></path><path d="M22 2L15 22L11 13L2 9L22 2Z"></path></svg>
+                            إرسال للمدير
+                        </button>
+                        <button
+                            onClick={handleSavePlans}
+                            disabled={saving}
+                            className="btn btn-primary px-8 py-3 text-lg disabled:opacity-50 flex items-center gap-2 shadow-lg"
+                        >
+                            {saving && <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>}
+                            {saving ? 'جارٍ الحفظ...' : 'حفظ خطة التدخل'}
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
+    );
+}
+
+export default function InterventionPage() {
+    return (
+        <Suspense fallback={<div className="p-8 text-center text-gray-500">جاري تحميل خطة التدخل...</div>}>
+            <InterventionContent />
+        </Suspense>
     );
 }

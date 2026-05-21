@@ -3,7 +3,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
-import { getAnalytics } from 'firebase/analytics';
+import { getAnalytics, isSupported } from 'firebase/analytics';
 
 const firebaseConfig = {
     apiKey: "AIzaSyCMCXiCaiwRrZ6ms_337MZAXstGeow-2hE",
@@ -21,9 +21,19 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 // Analytics - only in browser
-let analytics;
+let analytics: any = null;
 if (typeof window !== 'undefined') {
-    analytics = getAnalytics(app);
+    isSupported().then((supported) => {
+        if (supported) {
+            try {
+                analytics = getAnalytics(app);
+            } catch (err) {
+                console.warn('Firebase Analytics initialization failed:', err);
+            }
+        }
+    }).catch((err) => {
+        console.warn('Firebase Analytics is not supported in this environment:', err);
+    });
 }
 
 export { app, db, auth, analytics };

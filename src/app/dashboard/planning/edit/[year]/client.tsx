@@ -8,6 +8,7 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useAuth } from '@/contexts/AuthContext';
 import * as XLSX from 'xlsx';
+import { exportPlanToWord } from '@/lib/wordExport';
 
 export default function EditPlanClient({ year }: { year: string }) {
     const router = useRouter();
@@ -774,6 +775,30 @@ export default function EditPlanClient({ year }: { year: string }) {
                         </svg>
                         تصدير Excel
                     </button>
+
+                    {/* Word Export Button */}
+                    <button
+                        onClick={async () => {
+                            const fullPlanData = {
+                                profile,
+                                teachingStaff,
+                                schoolProfileTable,
+                                bookList,
+                                yearlyGoals,
+                                goals,
+                                integrationPlans
+                            };
+                            await exportPlanToWord(fullPlanData, year);
+                        }}
+                        className="btn bg-blue-600 hover:bg-blue-700 text-white text-lg px-6 py-3 flex items-center gap-2 shadow-lg transition-transform hover:-translate-y-1"
+                    >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        تنزيل Word
+                    </button>
                 </div>
             </div>
 
@@ -1168,6 +1193,70 @@ export default function EditPlanClient({ year }: { year: string }) {
 
 
 
+            {/* Integration Plans */}
+            <div className="glass-panel p-8 mb-8 print:border print:border-gray-300">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 className="text-2xl font-black flex items-center gap-2">
+                            📑 خطط الدمج الفردية (הוראה פרטנית)
+                        </h2>
+                        <p className="text-gray-500 text-sm mt-1">إدارة خطط التدخل والتعلّم الفردية للطلاب المدمجين</p>
+                    </div>
+                    <button
+                        onClick={() => openIntegrationModal()}
+                        className="btn btn-primary px-5 py-2 flex items-center gap-2 shadow-md hover:-translate-y-0.5 transition-transform print:hidden"
+                    >
+                        <span>+</span> إضافة خطة دمج جديدة
+                    </button>
+                </div>
+                {integrationPlans.length === 0 ? (
+                    <div className="text-center py-8 text-gray-400 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
+                        لا توجد خطط دمج فردية مضافة حالياً. انقر على الزر أعلاه لإضافة خطة جديدة.
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {integrationPlans.map((plan) => (
+                            <div
+                                key={plan.id}
+                                className="bg-white border-2 border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-primary/20 transition-all flex flex-col justify-between"
+                            >
+                                <div className="mb-4">
+                                    <div className="flex justify-between items-start">
+                                        <h4 className="font-bold text-lg text-gray-800">
+                                            {plan.studentName} {plan.studentFamilyName}
+                                        </h4>
+                                        <span className="text-xs px-2.5 py-1 bg-primary/10 text-primary font-bold rounded-full">
+                                            الصف {plan.grade || '---'}
+                                        </span>
+                                    </div>
+                                    <p className="text-gray-500 text-xs mt-2 font-semibold">
+                                        🪪 هوية: <span className="text-gray-700">{plan.studentId || '---'}</span>
+                                    </p>
+                                    <p className="text-gray-500 text-xs mt-1 font-semibold">
+                                        📅 تاريخ الميلاد: <span className="text-gray-700">{plan.dateOfBirth || '---'}</span>
+                                    </p>
+                                </div>
+                                <div className="flex gap-2 border-t pt-4 print:hidden">
+                                    <button
+                                        onClick={() => openIntegrationModal(plan)}
+                                        className="flex-1 px-3 py-2 bg-gray-50 text-gray-700 rounded-xl text-sm font-bold border border-gray-200 hover:bg-gray-100 transition-colors"
+                                    >
+                                        ✏️ تعديل
+                                    </button>
+                                    <button
+                                        onClick={() => deleteIntegrationPlan(plan.id)}
+                                        className="px-3 py-2 bg-red-50 text-red-600 rounded-xl text-sm font-bold border border-red-100 hover:bg-red-100 transition-colors"
+                                        title="حذف الخطة"
+                                    >
+                                        🗑️
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
             {/* Annual Goals */}
             <div className="glass-panel p-8 mb-8 print:border print:border-gray-300">
                 <h2 className="text-2xl font-black mb-4">الأهداف العامة للسنة</h2>
@@ -1488,7 +1577,11 @@ export default function EditPlanClient({ year }: { year: string }) {
                 >
                     {saving ? 'جاري الحفظ...' : '💾 حفظ كمسودة'}
                 </button>
-                <button onClick={() => alert('✅ تم إرسال الخطة للمراجعة!')} className="btn btn-primary px-8 py-3 text-lg shadow-xl">
+                <button
+                    onClick={handleSendForReview}
+                    disabled={saving}
+                    className="btn btn-primary px-8 py-3 text-lg shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                     إرسال للموافقة
                 </button>
             </div>
