@@ -1,12 +1,13 @@
 'use client';
 
+// ... imports
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useRouter, usePathname } from 'next/navigation';
 
-export type UserRole = 'admin' | 'coordinator' | 'user';
+export type UserRole = 'admin' | 'coordinator' | 'user' | 'pending';
 
 interface AuthContextType {
     user: User | null;
@@ -68,8 +69,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                                     setRole('coordinator');
                                     setCoordinatorId(snapshot.docs[0].id);
                                 } else {
-                                    setRole('user');
-                                    setCoordinatorId(null);
+                                    // 3. Check if Pending
+                                    const qPending = query(collection(db, 'pendingUsers'), where('email', '==', user.email));
+                                    const snapshotPending = await getDocs(qPending);
+
+                                    if (!snapshotPending.empty) {
+                                        setRole('pending');
+                                        setCoordinatorId(null);
+                                    } else {
+                                        setRole('user');
+                                        setCoordinatorId(null);
+                                    }
                                 }
                             }
                         } catch (error) {
@@ -105,18 +115,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Protected Routes Logic
         const isPublicRoute = pathname === '/';
-        const isProtected = !isPublicRoute;
+        const isPendingPage = pathname === '/approval-pending';
+        const isProtected = !isPublicRoute && !isPendingPage;
 
-        if (!user && isProtected) {
+        if (!user && (isProtected || isPendingPage)) {
             router.push('/');
             return;
         }
 
-        if (user && isPublicRoute) {
-            if (role === 'admin') {
-                router.push('/dashboard/principal');
-            } else {
-                router.push('/dashboard');
+        if (user) {
+            if (role === 'pending') {
+                if (!isPendingPage) {
+                    router.push('/approval-pending');
+                }
+                return;
+            }
+
+            // If user is approved (admin/coordinator) but on pending page, send to dashboard
+            if (isPendingPage && (role === 'admin' || role === 'coordinator')) {
+                router.push(role === 'admin' ? '/dashboard/principal' : '/dashboard');
+                return;
+            }
+
+            if (isPublicRoute) {
+                if (role === 'admin') {
+                    router.push('/dashboard/principal');
+                } else {
+                    // Coordinator or User -> Dashboard
+                    // If 'user' role is effectively unauthorized, we might want to handle it here too.
+                    // For now, consistent with previous behavior, 'user' goes to dashboard.
+                    router.push('/dashboard');
+                }
             }
         }
     }, [user, role, loading, pathname, router]);

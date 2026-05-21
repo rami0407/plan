@@ -5,6 +5,8 @@ import { generateAcademicYearMonths, type MonthPlan } from '@/lib/academicCalend
 import { db } from '@/lib/firebase';
 import { collection, addDoc, doc, getDoc, setDoc } from 'firebase/firestore';
 import AIAssistant from '@/components/AIAssistant';
+import { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, TextRun } from 'docx';
+import { saveAs } from 'file-saver';
 
 export default function AnnualPlanningClient() {
     const [months, setMonths] = useState<MonthPlan[]>([]);
@@ -52,6 +54,122 @@ export default function AnnualPlanningClient() {
 
     const handleDownload = () => {
         window.print();
+    };
+
+    const handleDownloadWord = async () => {
+        try {
+            const tableRows = [
+                // Header Row
+                new TableRow({
+                    children: [
+                        new TableCell({
+                            width: { size: 20, type: WidthType.PERCENTAGE },
+                            children: [new Paragraph({ children: [new TextRun({ text: 'الأسبوع / التاريخ', bold: true })] })],
+                            shading: { fill: 'E8E8E8' },
+                        }),
+                        new TableCell({
+                            width: { size: 40, type: WidthType.PERCENTAGE },
+                            children: [new Paragraph({ children: [new TextRun({ text: 'المحتوى / الفعاليات', bold: true })] })],
+                            shading: { fill: 'E8E8E8' },
+                        }),
+                        new TableCell({
+                            width: { size: 15, type: WidthType.PERCENTAGE },
+                            children: [new Paragraph({ children: [new TextRun({ text: 'حالة التنفيذ', bold: true })] })],
+                            shading: { fill: 'E8E8E8' },
+                        }),
+                        new TableCell({
+                            width: { size: 25, type: WidthType.PERCENTAGE },
+                            children: [new Paragraph({ children: [new TextRun({ text: 'ملاحظات', bold: true })] })],
+                            shading: { fill: 'E8E8E8' },
+                        }),
+                    ],
+                }),
+                // Data Rows
+                ...months.flatMap(month =>
+                    [
+                        // Month Header Row
+                        new TableRow({
+                            children: [
+                                new TableCell({
+                                    columnSpan: 4,
+                                    children: [new Paragraph({ children: [new TextRun({ text: `${month.monthName} / ${month.monthNameArabic}`, bold: true, size: 48 })] })],
+                                    shading: { fill: 'F0F0F0' },
+                                }),
+                            ],
+                        }),
+                        // Week Rows
+                        ...month.weeks.map(week =>
+                            new TableRow({
+                                children: [
+                                    new TableCell({
+                                        width: { size: 20, type: WidthType.PERCENTAGE },
+                                        children: [
+                                            new Paragraph({ children: [new TextRun({ text: `الأسبوع ${week.weekNumber}`, bold: true })] }),
+                                            new Paragraph({ children: [new TextRun({ text: week.dateRange, size: 16 })] }),
+                                        ],
+                                    }),
+                                    new TableCell({
+                                        width: { size: 40, type: WidthType.PERCENTAGE },
+                                        children: [new Paragraph({ text: week.content || '-' })],
+                                    }),
+                                    new TableCell({
+                                        width: { size: 15, type: WidthType.PERCENTAGE },
+                                        children: [
+                                            new Paragraph({
+                                                children: [new TextRun({
+                                                    text: week.status === 'completed' ? '✓ تم كاملاً' : week.status === 'partial' ? '◐ جزئي' : '✗ لم يتم',
+                                                    bold: true,
+                                                    color: week.status === 'completed' ? '008000' : week.status === 'partial' ? 'FF8800' : 'FF0000',
+                                                })],
+                                            }),
+                                        ],
+                                    }),
+                                    new TableCell({
+                                        width: { size: 25, type: WidthType.PERCENTAGE },
+                                        children: [new Paragraph({ text: week.notes || '-' })],
+                                    }),
+                                ],
+                            })
+                        ),
+                    ]
+                ),
+            ];
+
+            const doc = new Document({
+                sections: [
+                    {
+                        children: [
+                            new Paragraph({
+                                children: [new TextRun({ text: 'خطة العمل السنوية', bold: true, size: 64 })],
+                                alignment: AlignmentType.CENTER,
+                                spacing: { after: 200 },
+                            }),
+                            new Paragraph({
+                                children: [new TextRun({ text: `السنة الدراسية: ${selectedYear} - ${selectedYear + 1}`, size: 48 })],
+                                alignment: AlignmentType.CENTER,
+                                spacing: { after: 400 },
+                            }),
+                            new Table({
+                                width: { size: 100, type: WidthType.PERCENTAGE },
+                                rows: tableRows,
+                            }),
+                            new Paragraph({
+                                children: [new TextRun({ text: `تاريخ الإنشاء: ${new Date().toLocaleDateString('ar-EG')}`, size: 36 })],
+                                alignment: AlignmentType.RIGHT,
+                                spacing: { before: 400 },
+                            }),
+                        ],
+                    },
+                ],
+            });
+
+            const blob = await Packer.toBlob(doc);
+            saveAs(blob, `خطة_العمل_${selectedYear}.docx`);
+            alert('✅ تم تنزيل الخطة بصيغة Word بنجاح');
+        } catch (error) {
+            console.error('Error downloading Word:', error);
+            alert('❌ حدث خطأ أثناء تنزيل الملف');
+        }
     };
 
     const handleSave = async () => {
@@ -137,6 +255,13 @@ export default function AnnualPlanningClient() {
                             className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold shadow-lg hover:scale-105 transition-all flex items-center gap-2 animate-pulse"
                         >
                             <span>✨</span> مساعد التخطيط
+                        </button>
+                        <button
+                            onClick={handleDownloadWord}
+                            className="btn btn-ghost border-2 border-blue-300 hover:border-blue-600 hover:bg-blue-50 flex items-center gap-2"
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            تنزيل (Word)
                         </button>
                         <button
                             onClick={handleDownload}

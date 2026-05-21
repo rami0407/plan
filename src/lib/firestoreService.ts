@@ -757,3 +757,60 @@ export const saveStudentAssessment = async (assessment: StudentAssessment) => {
         throw error;
     }
 };
+
+// Pending Users (Registration Requests)
+export interface PendingUser {
+    id?: string;
+    uid: string;
+    name: string;
+    email: string;
+    phone: string;
+    createdAt: any;
+}
+
+export const addPendingUser = async (user: Omit<PendingUser, 'id' | 'createdAt'>) => {
+    try {
+        const docRef = await addDoc(collection(db, 'pendingUsers'), {
+            ...user,
+            createdAt: Timestamp.now()
+        });
+        return docRef.id;
+    } catch (error) {
+        console.error('Error adding pending user:', error);
+        throw error;
+    }
+};
+
+export const getPendingUsers = async (): Promise<PendingUser[]> => {
+    try {
+        const q = query(collection(db, 'pendingUsers'), orderBy('createdAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        } as PendingUser));
+    } catch (error) {
+        console.error('Error getting pending users:', error);
+        throw error;
+    }
+};
+
+export const deletePendingUser = async (id: string) => {
+    try {
+        await deleteDoc(doc(db, 'pendingUsers', id));
+    } catch (error) {
+        console.error('Error deleting pending user:', error);
+        throw error;
+    }
+};
+
+export const checkPendingUserStatus = async (email: string): Promise<boolean> => {
+    try {
+        const q = query(collection(db, 'pendingUsers'), where('email', '==', email));
+        const snapshot = await getDocs(q);
+        return !snapshot.empty;
+    } catch (error) {
+        console.error('Error checking pending user status:', error);
+        return false;
+    }
+};

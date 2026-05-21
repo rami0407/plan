@@ -7,6 +7,7 @@ import { initializeApp, getApp, getApps, deleteApp, FirebaseApp } from 'firebase
 import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import Link from 'next/link';
 import AIAssistant from '@/components/AIAssistant';
+import { getPendingUsers, deletePendingUser, addCoordinator, PendingUser } from '@/lib/firestoreService';
 
 // Firebase Config (Must match the one in lib/firebase.ts)
 const firebaseConfig = {
@@ -37,6 +38,66 @@ export default function PrincipalDashboard() {
     const [monthlyValues, setMonthlyValues] = useState<Record<string, string>>({});
     const [isSavingValues, setIsSavingValues] = useState(false);
     const [showAI, setShowAI] = useState(false);
+
+    // Pending Users State
+    const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
+
+    useEffect(() => {
+        const fetchPending = async () => {
+            try {
+                const users = await getPendingUsers();
+                setPendingUsers(users);
+            } catch (e) {
+                console.error("Error fetching pending users", e);
+            }
+        };
+        fetchPending();
+    }, []);
+
+    const handleApproveUser = async (user: PendingUser) => {
+        if (!confirm(`هل أنت متأكد من الموافقة على ${user.name}؟`)) return;
+        try {
+            // 1. Add to Coordinators (so AuthContext allows login)
+            await addCoordinator({
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                subject: 'عام',
+                avatar: '',
+                planStatus: 'incomplete'
+            });
+
+            // 2. Add to Users collection (for completeness)
+            await setDoc(doc(db, 'users', user.uid), {
+                uid: user.uid,
+                name: user.name,
+                email: user.email,
+                role: 'coordinator',
+                subject: 'عام',
+                createdAt: new Date().toISOString()
+            });
+
+            // 3. Delete from Pending
+            if (user.id) await deletePendingUser(user.id);
+            setPendingUsers(prev => prev.filter(u => u.id !== user.id));
+            alert('✅ تم الموافقة على المستخدم بنجاح');
+        } catch (error) {
+            console.error("Error approving user:", error);
+            alert('❌ حدث خطأ أثناء الموافقة');
+        }
+    };
+
+    const handleRejectUser = async (user: PendingUser) => {
+        if (!confirm(`هل أنت متأكد من رفض طلب ${user.name}؟`)) return;
+        try {
+            if (user.id) await deletePendingUser(user.id);
+            setPendingUsers(prev => prev.filter(u => u.id !== user.id));
+            alert('⚠️ تم رفض الطلب');
+        } catch (error) {
+            console.error("Error rejecting user:", error);
+            alert('❌ حدث خطأ أثناء الرفض');
+        }
+    };
 
     const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
     const availableYears = Array.from({ length: 2040 - 2023 }, (_, i) => 2024 + i);
@@ -286,6 +347,60 @@ export default function PrincipalDashboard() {
                         <div className="text-purple-100">متوسط الإنجاز</div>
                     </div>
                 </div>
+
+                {/* Registration Requests Section (NEW) */}
+                {pendingUsers.length > 0 && (
+                    <div className="bg-white rounded-2xl shadow-xl p-6 mt-8 border-2 border-yellow-100">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-2xl font-bold flex items-center gap-2 text-yellow-800">
+                                <span className="text-yellow-600 bg-yellow-100 p-2 rounded-lg">⏳</span>
+                                طلبات التسجيل الجديدة
+                                <span className="bg-red-500 text-white text-sm px-3 py-1 rounded-full animate-pulse">{pendingUsers.length}</span>
+                            </h2>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-yellow-50/50">
+                                    <tr>
+                                        <th className="text-right p-4 font-bold text-gray-700">الاسم</th>
+                                        <th className="text-right p-4 font-bold text-gray-700">البريد الإلكتروني</th>
+                                        <th className="text-right p-4 font-bold text-gray-700">رقم الهاتف</th>
+                                        <th className="text-right p-4 font-bold text-gray-700">تاريخ الطلب</th>
+                                        <th className="text-center p-4 font-bold text-gray-700">الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {pendingUsers.map(user => (
+                                        <tr key={user.id} className="border-b border-gray-100 hover:bg-yellow-50/20 transition-colors">
+                                            <td className="p-4 font-bold">{user.name}</td>
+                                            <td className="p-4">{user.email}</td>
+                                            <td className="p-4">{user.phone}</td>
+                                            <td className="p-4 text-sm text-gray-500">
+                                                {user.createdAt?.toDate ? user.createdAt.toDate().toLocaleDateString('ar-EG') : 'الآن'}
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button
+                                                        onClick={() => handleApproveUser(user)}
+                                                        className="btn bg-green-500 hover:bg-green-600 text-white px-4 py-1 rounded-lg shadow-sm text-sm"
+                                                    >
+                                                        موافقة ✅
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleRejectUser(user)}
+                                                        className="btn bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded-lg shadow-sm text-sm"
+                                                    >
+                                                        رفض ⛔
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
 
                 {/* START: User Management Section (NEW) */}
                 <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 mt-8 border-2 border-indigo-50">
