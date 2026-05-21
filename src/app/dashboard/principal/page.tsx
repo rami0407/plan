@@ -195,6 +195,7 @@ export default function PrincipalDashboard() {
     const [addingUser, setAddingUser] = useState(false);
 
     const [plans, setPlans] = useState<CoordinatorPlan[]>([]);
+    const [pendingUsers, setPendingUsers] = useState<any[]>([]);
 
     // Fetch Plans for Selected Year
     useEffect(() => {
@@ -208,6 +209,42 @@ export default function PrincipalDashboard() {
         });
         return () => unsubscribe();
     }, [selectedYear]);
+
+    // Fetch Pending Users
+    useEffect(() => {
+        const q = query(collection(db, 'users'), where('status', '==', 'pending'));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const users = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setPendingUsers(users);
+        });
+        return () => unsubscribe();
+    }, []);
+
+    const handleApproveUser = async (userId: string) => {
+        try {
+            await updateDoc(doc(db, 'users', userId), {
+                status: 'approved'
+            });
+            alert('✅ تم اعتماد المستخدم بنجاح');
+        } catch (error) {
+            console.error('Error approving user:', error);
+            alert('❌ حدث خطأ أثناء الاعتماد');
+        }
+    };
+
+    const handleRejectUser = async (userId: string) => {
+        if (!confirm('هل أنت متأكد من رفض وحذف هذا الطلב؟')) return;
+        try {
+            await deleteDoc(doc(db, 'users', userId));
+            alert('✅ تم رفض وحذف الطلب');
+        } catch (error) {
+            console.error('Error rejecting user:', error);
+            alert('❌ حدث خطأ أثناء الرفض');
+        }
+    };
 
     const handleAddUser = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -637,6 +674,57 @@ export default function PrincipalDashboard() {
                         </table>
                     </div>
                 </div>
+
+                {/* Pending Approvals Section */}
+                {pendingUsers.length > 0 && (
+                    <div className="bg-white rounded-2xl shadow-xl p-6 mt-8 mb-8 border-2 border-amber-200">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-2xl font-bold flex items-center gap-2 text-amber-700">
+                                <span className="text-3xl">🔔</span>
+                                طلبات تسجيل جديدة ({pendingUsers.length})
+                            </h2>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-right">
+                                <thead>
+                                    <tr className="border-b-2 border-gray-100">
+                                        <th className="py-4 px-4 font-bold text-gray-600">الاسم</th>
+                                        <th className="py-4 px-4 font-bold text-gray-600">البريد الإلكتروني</th>
+                                        <th className="py-4 px-4 font-bold text-gray-600">التخصص</th>
+                                        <th className="py-4 px-4 font-bold text-gray-600">الهاتف</th>
+                                        <th className="py-4 px-4 font-bold text-gray-600">الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {pendingUsers.map((u) => (
+                                        <tr key={u.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                                            <td className="py-4 px-4 font-bold text-gray-800">{u.name}</td>
+                                            <td className="py-4 px-4 text-gray-600">{u.email}</td>
+                                            <td className="py-4 px-4 text-gray-600">{u.subject}</td>
+                                            <td className="py-4 px-4 text-gray-600">{u.phone}</td>
+                                            <td className="py-4 px-4">
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => handleApproveUser(u.id)}
+                                                        className="px-4 py-2 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 transition-colors"
+                                                    >
+                                                        اعتماد
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleRejectUser(u.id)}
+                                                        className="px-4 py-2 bg-red-50 text-red-500 rounded-lg font-bold hover:bg-red-100 transition-colors"
+                                                    >
+                                                        رفض
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
 
                 {/* Task Assignment Section */}
                 <div className="bg-white rounded-2xl shadow-xl p-6 mt-8 mb-8">

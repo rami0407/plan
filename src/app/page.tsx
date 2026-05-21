@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-// ... imports
+import Link from 'next/link';
 import { signInWithEmailAndPassword, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { addPendingUser } from '@/lib/firestoreService';
@@ -40,9 +40,24 @@ export default function LoginPage() {
     setError('');
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // AuthContext will handle redirection based on role/status
-      // But we can verify here if needed
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Check if user is approved in Firestore
+      const { getDoc, doc } = await import('firebase/firestore');
+      const { db } = await import('@/lib/firebase');
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        if (userData.status === 'pending') {
+          setError('حسابك قيد المراجعة. يرجى الانتظار حتى يتم اعتماده من قبل الإدارة.');
+          await auth.signOut();
+          setLoading(false);
+          return;
+        }
+      }
+
       router.push('/dashboard');
     } catch (err: any) {
       console.error('Login error:', err);
@@ -275,11 +290,12 @@ export default function LoginPage() {
                 <span>تسجيل الدخول عبر Google</span>
               </button>
 
-              <div className="mt-4 pt-4 border-t border-gray-100 text-center">
-                <p className="text-gray-600 mb-2">ليس لديك حساب؟</p>
+<<<<<<< HEAD
+              <div className="footer-text mt-4 p-4 bg-blue-50 rounded-xl border border-blue-100 text-center">
+                <span className="text-gray-600 block mb-2">ليس لديك حساب؟</span>
                 <button
                   onClick={() => { setIsRegistering(true); setError(''); }}
-                  className="text-primary font-bold hover:underline"
+                  className="px-6 py-2 bg-primary text-white rounded-lg font-bold hover:bg-primary-dark transition-all shadow-md cursor-pointer"
                 >
                   إنشاء حساب جديد ✨
                 </button>
