@@ -190,26 +190,12 @@ export default function PrincipalDashboard() {
         return date.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
     };
 
-    // ... existing handleAddUser and other functions ...
-
-    // (Make sure to remove the old useEffect for single month if it exists, or just ensure this replaces the relevant section and we remove the old state refs if possible, but replace tool replaces specific lines. I will assume I need to replace the state definitions at the top too?)
-    // Wait, I can only replace one block. 
-    // The "Instruction" says "Replace the 'Value of the Month Management' section (and related state/logic)".
-    // But `state` is at the top of the component, and `UI` is in the middle.
-    // I should use `multi_replace_file_content` if I need to change separate parts.
-    // However, I can try to put the new logic right before the UI if I can't edit the top easily without context loss.
-    // Actually, `useState` hooks must be at the top level.
-    // I will use `replace_file_content` to replace the UI section, and `replace_file_content` for the state section? No, "Do NOT make multiple parallel calls".
-    // I will use `multi_replace_file_content`.
-
-
-
-
     // User Management State
     const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'coordinator', subject: '' });
     const [addingUser, setAddingUser] = useState(false);
 
     const [plans, setPlans] = useState<CoordinatorPlan[]>([]);
+    const [pendingAuthUsers, setPendingAuthUsers] = useState<any[]>([]);
 
     // Fetch Plans for Selected Year
     useEffect(() => {
@@ -223,6 +209,76 @@ export default function PrincipalDashboard() {
         });
         return () => unsubscribe();
     }, [selectedYear]);
+
+    // Fetch Pending Users from Users Collection
+    useEffect(() => {
+        const q = query(collection(db, 'users'), where('status', '==', 'pending'));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const users = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setPendingAuthUsers(users);
+        });
+        return () => unsubscribe();
+    }, []);
+
+    const handleApproveAuthUser = async (userId: string) => {
+        try {
+            // Get user details first
+            const userRef = doc(db, 'users', userId);
+            const userSnap = await getDoc(userRef);
+            if (!userSnap.exists()) {
+                alert('❌ لم يتم العثور على المستخدم');
+                return;
+            }
+            const userData = userSnap.data();
+
+            // Check if there is an existing coordinator with this email
+            const q = query(collection(db, 'coordinators'), where('email', '==', userData.email));
+            const snapshot = await getDocs(q);
+            
+            // Delete duplicates/legacy coordinator entries if any
+            if (!snapshot.empty) {
+                for (const docSnap of snapshot.docs) {
+                    await deleteDoc(doc(db, 'coordinators', docSnap.id));
+                }
+            }
+
+            // If the user's role is coordinator, add to coordinators collection
+            if (userData.role === 'coordinator') {
+                await addCoordinator({
+                    name: userData.name,
+                    email: userData.email,
+                    phone: userData.phone || '',
+                    subject: userData.subject || 'عام',
+                    avatar: userData.name ? userData.name.charAt(0) : 'ع',
+                    planStatus: 'incomplete'
+                }, userId);
+            }
+
+            // Update user status in users collection
+            await updateDoc(userRef, {
+                status: 'approved'
+            });
+
+            alert('✅ تم اعتماد المستخدم بنجاح');
+        } catch (error) {
+            console.error('Error approving user:', error);
+            alert('❌ حدث خطأ أثناء الاعتماد');
+        }
+    };
+
+    const handleRejectAuthUser = async (userId: string) => {
+        if (!confirm('هل أنت متأكد من رفض وحذف هذا الطلب؟')) return;
+        try {
+            await deleteDoc(doc(db, 'users', userId));
+            alert('✅ تم رفض وحذف الطلب');
+        } catch (error) {
+            console.error('Error rejecting user:', error);
+            alert('❌ حدث خطأ أثناء الرفض');
+        }
+    };
 
     const handleAddUser = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -674,6 +730,57 @@ export default function PrincipalDashboard() {
                         </table>
                     </div>
                 </div>
+
+                {/* Pending Approvals Section */}
+                {pendingAuthUsers.length > 0 && (
+                    <div className="bg-white rounded-2xl shadow-xl p-6 mt-8 mb-8 border-2 border-amber-200">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-2xl font-bold flex items-center gap-2 text-amber-700">
+                                <span className="text-3xl">🔔</span>
+                                طلبات تسجيل جديدة ({pendingAuthUsers.length})
+                            </h2>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-right">
+                                <thead>
+                                    <tr className="border-b-2 border-gray-100">
+                                        <th className="py-4 px-4 font-bold text-gray-600">الاسم</th>
+                                        <th className="py-4 px-4 font-bold text-gray-600">البريد الإلكتروني</th>
+                                        <th className="py-4 px-4 font-bold text-gray-600">التخصص</th>
+                                        <th className="py-4 px-4 font-bold text-gray-600">الهاتف</th>
+                                        <th className="py-4 px-4 font-bold text-gray-600">الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {pendingAuthUsers.map((u) => (
+                                        <tr key={u.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                                            <td className="py-4 px-4 font-bold text-gray-800">{u.name}</td>
+                                            <td className="py-4 px-4 text-gray-600">{u.email}</td>
+                                            <td className="py-4 px-4 text-gray-600">{u.subject}</td>
+                                            <td className="py-4 px-4 text-gray-600">{u.phone}</td>
+                                            <td className="py-4 px-4">
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => handleApproveAuthUser(u.id)}
+                                                        className="px-4 py-2 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 transition-colors"
+                                                    >
+                                                        اعتماد
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleRejectAuthUser(u.id)}
+                                                        className="px-4 py-2 bg-red-50 text-red-500 rounded-lg font-bold hover:bg-red-100 transition-colors"
+                                                    >
+                                                        رفض
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
 
                 {/* Task Assignment Section */}
                 <div className="bg-white rounded-2xl shadow-xl p-6 mt-8 mb-8">

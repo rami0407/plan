@@ -60,46 +60,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         setCoordinatorId(null);
                     } else {
                         try {
-                            // 2. Check if in approved 'users' collection first (contains teachers/coordinators)
-                            const qUser = query(collection(db, 'users'), where('email', '==', user.email));
-                            const snapshotUser = await getDocs(qUser);
-
-                            // 3. Also check 'coordinators' collection
-                            const qCoord = query(collection(db, 'coordinators'), where('email', '==', user.email));
-                            const snapshotCoord = await getDocs(qCoord);
+                            // 2. Check User Document for Role and Status in 'users' collection
+                            const userQuery = query(collection(db, 'users'), where('email', '==', user.email));
+                            const userSnapshot = await getDocs(userQuery);
 
                             if (isMounted) {
-                                if (!snapshotUser.empty) {
-                                    const userData = snapshotUser.docs[0].data();
-                                    const userRole = userData.role;
-
-                                    if (userRole === 'admin') {
-                                        setRole('admin');
-                                        setCoordinatorId(null);
-                                    } else if (userRole === 'coordinator') {
-                                        setRole('coordinator');
-                                        const coordId = !snapshotCoord.empty ? snapshotCoord.docs[0].id : user.uid;
-                                        setCoordinatorId(coordId);
-                                    } else {
-                                        setRole('user'); // Default teacher/user
-                                        setCoordinatorId(null);
-                                    }
-                                } else if (!snapshotCoord.empty) {
-                                    // Found in coordinators but not in users (legacy)
-                                    setRole('coordinator');
-                                    setCoordinatorId(snapshotCoord.docs[0].id);
-                                } else {
-                                    // 4. Check if Pending
-                                    const qPending = query(collection(db, 'pendingUsers'), where('email', '==', user.email));
-                                    const snapshotPending = await getDocs(qPending);
-
-                                    if (!snapshotPending.empty) {
+                                if (!userSnapshot.empty) {
+                                    const userData = userSnapshot.docs[0].data();
+                                    
+                                    if (userData.status === 'pending') {
                                         setRole('pending');
                                         setCoordinatorId(null);
                                     } else {
-                                        // Not in users, coordinators, or pending -> Unauthorized!
-                                        setRole('unauthorized');
-                                        setCoordinatorId(null);
+                                        const userRole = userData.role || 'coordinator';
+                                        if (userRole === 'admin') {
+                                            setRole('admin');
+                                            setCoordinatorId(null);
+                                        } else if (userRole === 'coordinator') {
+                                            setRole('coordinator');
+                                            // Look up coordinatorId in coordinators collection if possible
+                                            const qCoord = query(collection(db, 'coordinators'), where('email', '==', user.email));
+                                            const snapshotCoord = await getDocs(qCoord);
+                                            const coordId = !snapshotCoord.empty ? snapshotCoord.docs[0].id : userSnapshot.docs[0].id;
+                                            setCoordinatorId(coordId);
+                                        } else {
+                                            setRole('user');
+                                            setCoordinatorId(null);
+                                        }
+                                    }
+                                } else {
+                                    // 3. Fallback: Check 'coordinators' collection (legacy or separate)
+                                    const qCoord = query(collection(db, 'coordinators'), where('email', '==', user.email));
+                                    const snapshotCoord = await getDocs(qCoord);
+
+                                    if (!snapshotCoord.empty) {
+                                        setRole('coordinator');
+                                        setCoordinatorId(snapshotCoord.docs[0].id);
+                                    } else {
+                                        // 4. Check if in pendingUsers collection
+                                        const qPending = query(collection(db, 'pendingUsers'), where('email', '==', user.email));
+                                        const snapshotPending = await getDocs(qPending);
+
+                                        if (!snapshotPending.empty) {
+                                            setRole('pending');
+                                            setCoordinatorId(null);
+                                        } else {
+                                            // Not found anywhere -> Unauthorized
+                                            setRole('unauthorized');
+                                            setCoordinatorId(null);
+                                        }
                                     }
                                 }
                             }
