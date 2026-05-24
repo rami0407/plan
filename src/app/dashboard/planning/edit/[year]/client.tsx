@@ -247,7 +247,7 @@ export default function EditPlanClient({ year }: { year: string }) {
             title: 'تحسين مستوى الطلاب في الرياضيات',
             objective: 'رفع معدل النجاح من 75% إلى 85%',
             tasks: [
-                { id: 't1', task: '', steps: '', startDate: '', responsible: '', status: 'not-started' as 'not-started' | 'partial' | 'completed' }
+                { id: 't1', task: '', steps: '', startDate: '', responsible: '', outcomeMeasures: '', status: 'not-started' as 'not-started' | 'partial' | 'completed' }
             ]
         }
     ]);
@@ -267,14 +267,14 @@ export default function EditPlanClient({ year }: { year: string }) {
             id: Date.now().toString(),
             title: '',
             objective: '',
-            tasks: [{ id: 't1', task: '', steps: '', startDate: '', responsible: '', status: 'not-started' as 'not-started' | 'partial' | 'completed' }]
+            tasks: [{ id: 't1', task: '', steps: '', startDate: '', responsible: '', outcomeMeasures: '', status: 'not-started' as 'not-started' | 'partial' | 'completed' }]
         }]);
     };
 
     const addTask = (goalId: string) => {
         setGoals(goals.map(g =>
             g.id === goalId
-                ? { ...g, tasks: [...g.tasks, { id: `t${Date.now()}`, task: '', steps: '', startDate: '', responsible: '', status: 'not-started' as 'not-started' | 'partial' | 'completed' }] }
+                ? { ...g, tasks: [...g.tasks, { id: `t${Date.now()}`, task: '', steps: '', startDate: '', responsible: '', outcomeMeasures: '', status: 'not-started' as 'not-started' | 'partial' | 'completed' }] }
                 : g
         ));
     };
@@ -1288,7 +1288,7 @@ export default function EditPlanClient({ year }: { year: string }) {
                                     {/* Goal Row */}
                                     <tr className="bg-primary/5">
                                         <td className="p-3 border-b border-primary/10 font-bold text-primary w-32 align-middle">الهدف</td>
-                                        <td className="p-2 border-b border-primary/10" colSpan={5}>
+                                        <td className="p-2 border-b border-primary/10" colSpan={6}>
                                             <input
                                                 type="text"
                                                 value={goal.title}
@@ -1302,7 +1302,7 @@ export default function EditPlanClient({ year }: { year: string }) {
                                     {/* Objective Row */}
                                     <tr className="bg-primary/5">
                                         <td className="p-3 border-b border-primary/10 font-bold text-primary align-middle">المؤشر المستهدف</td>
-                                        <td className="p-2 border-b border-primary/10" colSpan={5}>
+                                        <td className="p-2 border-b border-primary/10" colSpan={6}>
                                             <input
                                                 type="text"
                                                 value={goal.objective}
@@ -1315,11 +1315,12 @@ export default function EditPlanClient({ year }: { year: string }) {
 
                                     {/* Table Header */}
                                     <tr className="bg-gray-50 border-b border-gray-200 text-sm text-gray-500">
-                                        <th className="p-3 text-right font-bold">المهمة</th>
-                                        <th className="p-3 text-right font-bold">خطوات التنفيذ</th>
-                                        <th className="p-3 text-right font-bold w-48">تاريخ البدء</th>
-                                        <th className="p-3 text-right font-bold w-48">المسؤول</th>
-                                        <th className="p-3 text-right font-bold w-32">الحالة</th>
+                                        <th className="p-3 text-right font-bold">משימה</th>
+                                        <th className="p-3 text-right font-bold">דרכי פעולה</th>
+                                        <th className="p-3 text-right font-bold w-48">לו"ז</th>
+                                        <th className="p-3 text-right font-bold w-48">אחראי משימה</th>
+                                        <th className="p-3 text-right font-bold w-48">מדדי תוצאה</th>
+                                        <th className="p-3 text-right font-bold w-32">סטטוס</th>
                                         <th className="p-3 print:hidden w-12"></th>
                                     </tr>
 
@@ -1327,20 +1328,41 @@ export default function EditPlanClient({ year }: { year: string }) {
                                     {goal.tasks.map(task => (
                                         <tr key={task.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/50 transition-colors">
                                             <td className="p-2 align-top">
-                                                <input
-                                                    type="text"
+                                                <textarea
                                                     value={task.task}
-                                                    onChange={(e) => updateTask(goal.id, task.id, 'task', e.target.value)}
-                                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
-                                                    placeholder="اكتب المهمة..."
+                                                    onChange={(e) => {
+                                                        updateTask(goal.id, task.id, 'task', e.target.value);
+                                                        e.target.style.height = 'auto';
+                                                        e.target.style.height = `${e.target.scrollHeight}px`;
+                                                    }}
+                                                    ref={(el) => {
+                                                        if (el) {
+                                                            el.style.height = 'auto';
+                                                            el.style.height = `${el.scrollHeight}px`;
+                                                        }
+                                                    }}
+                                                    rows={1}
+                                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm resize-none overflow-hidden"
+                                                    placeholder="הזן משימה..."
                                                 />
                                             </td>
                                             <td className="p-2 align-top">
                                                 <textarea
                                                     value={task.steps}
-                                                    onChange={(e) => updateTask(goal.id, task.id, 'steps', e.target.value)}
-                                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none h-20 text-sm"
-                                                    placeholder="اكتب الخطوات..."
+                                                    onChange={(e) => {
+                                                        updateTask(goal.id, task.id, 'steps', e.target.value);
+                                                        e.target.style.height = 'auto';
+                                                        e.target.style.height = `${e.target.scrollHeight}px`;
+                                                    }}
+                                                    ref={(el) => {
+                                                        if (el) {
+                                                            el.style.height = 'auto';
+                                                            el.style.height = `${el.scrollHeight}px`;
+                                                        }
+                                                    }}
+                                                    rows={1}
+                                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm resize-none overflow-hidden"
+                                                    placeholder="הזן דרכי פעולה..."
                                                 />
                                             </td>
                                             <td className="p-2 align-top">
@@ -1357,7 +1379,26 @@ export default function EditPlanClient({ year }: { year: string }) {
                                                     value={task.responsible}
                                                     onChange={(e) => updateTask(goal.id, task.id, 'responsible', e.target.value)}
                                                     className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
-                                                    placeholder="اسم المسؤول..."
+                                                    placeholder="אחראי משימה..."
+                                                />
+                                            </td>
+                                            <td className="p-2 align-top">
+                                                <textarea
+                                                    value={task.outcomeMeasures || ''}
+                                                    onChange={(e) => {
+                                                        updateTask(goal.id, task.id, 'outcomeMeasures', e.target.value);
+                                                        e.target.style.height = 'auto';
+                                                        e.target.style.height = `${e.target.scrollHeight}px`;
+                                                    }}
+                                                    ref={(el) => {
+                                                        if (el) {
+                                                            el.style.height = 'auto';
+                                                            el.style.height = `${el.scrollHeight}px`;
+                                                        }
+                                                    }}
+                                                    rows={1}
+                                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm resize-none overflow-hidden"
+                                                    placeholder="הזן מדדי תוצאה..."
                                                 />
                                             </td>
                                             <td className="p-2 align-top">
@@ -1369,9 +1410,9 @@ export default function EditPlanClient({ year }: { year: string }) {
                                                             task.status === 'partial' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
                                                                 'bg-gray-50 text-gray-500 border-gray-200'}`}
                                                 >
-                                                    <option value="not-started">لم يُنفّذ</option>
-                                                    <option value="partial">جزئياً</option>
-                                                    <option value="completed">نُفّذ</option>
+                                                    <option value="not-started">טרם בוצע</option>
+                                                    <option value="partial">חלקית</option>
+                                                    <option value="completed">בוצע</option>
                                                 </select>
                                             </td>
                                             <td className="p-2 align-top text-center print:hidden pt-4">
@@ -1388,7 +1429,7 @@ export default function EditPlanClient({ year }: { year: string }) {
 
                                     {/* Add Task Button Row */}
                                     <tr className="print:hidden">
-                                        <td colSpan={6} className="p-3 bg-gray-50 text-center border-t border-gray-100">
+                                        <td colSpan={7} className="p-3 bg-gray-50 text-center border-t border-gray-100">
                                             <button
                                                 onClick={() => addTask(goal.id)}
                                                 className="text-primary hover:text-primary-dark font-bold text-sm flex items-center justify-center gap-2 mx-auto"

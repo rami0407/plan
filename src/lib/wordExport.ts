@@ -234,7 +234,7 @@ export const exportPlanToWord = async (planData: any, year: string) => {
                 }),
                 new Paragraph({
                     children: [
-                        new TextRun({ text: "الغاية الاستراتيجية / المؤشر المستهدف: ", bold: true, rightToLeft: true }),
+                        new TextRun({ text: "المؤشر المستهدف: ", bold: true, rightToLeft: true }),
                         new TextRun({ text: goal.objective || '---', rightToLeft: true }),
                     ],
                     alignment: AlignmentType.RIGHT,
@@ -247,25 +247,27 @@ export const exportPlanToWord = async (planData: any, year: string) => {
                 const taskRows = [
                     new TableRow({
                         children: [
-                            createHeaderCell("الحالة"),
-                            createHeaderCell("المسؤول"),
-                            createHeaderCell("تاريخ البدء"),
-                            createHeaderCell("خطوات التنفيذ"),
-                            createHeaderCell("المهمة"),
+                            createHeaderCell("משימה"),
+                            createHeaderCell("דרכי פעולה"),
+                            createHeaderCell("לו\"ז"),
+                            createHeaderCell("אחראי משימה"),
+                            createHeaderCell("מדדי תוצאה"),
+                            createHeaderCell("סטטוס"),
                         ]
                     }),
                     ...goal.tasks.map((task: any) => {
-                        let statusText = 'لم يبدأ';
-                        if (task.status === 'completed') statusText = 'منجز';
-                        else if (task.status === 'partial') statusText = 'جزئي';
+                        let statusText = 'טרם בוצע';
+                        if (task.status === 'completed') statusText = 'בוצע';
+                        else if (task.status === 'partial') statusText = 'חלקית';
 
                         return new TableRow({
                             children: [
-                                createDataCell(statusText, true),
-                                createDataCell(task.responsible),
-                                createDataCell(task.startDate, true),
-                                createDataCell(task.steps),
                                 createDataCell(task.task),
+                                createDataCell(task.steps),
+                                createDataCell(task.startDate, true),
+                                createDataCell(task.responsible),
+                                createDataCell(task.outcomeMeasures || '---'),
+                                createDataCell(statusText, true),
                             ]
                         });
                     })

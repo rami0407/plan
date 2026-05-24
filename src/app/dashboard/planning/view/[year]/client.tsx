@@ -376,29 +376,31 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                                         <h4 className="text-lg font-bold text-gray-800">{goal.title}</h4>
                                     </div>
                                     <div className="flex-1">
-                                        <span className="text-xs font-bold text-gray-400">الغاية الاستراتيجية</span>
+                                        <span className="text-xs font-bold text-gray-400">المؤشر المستهدف</span>
                                         <p className="text-gray-700">{goal.objective}</p>
                                     </div>
                                 </div>
-                                <h5 className="font-bold text-sm text-gray-500 mb-2">مهام التنفيذ:</h5>
+                                <h5 className="font-bold text-sm text-gray-500 mb-2">משימות לביצוע:</h5>
                                 <ul className="space-y-3">
                                     {goal.tasks.map(task => (
                                         <li key={task.id} className="flex gap-3 items-start bg-gray-50 p-3 rounded-lg text-sm border border-gray-100">
                                             <span className={`px-2 py-1 rounded text-xs font-bold whitespace-nowrap ${task.status === 'completed' ? 'bg-green-100 text-green-700' :
                                                 task.status === 'partial' ? 'bg-orange-100 text-orange-700' : 'bg-gray-200 text-gray-600'
                                                 }`}>
-                                                {task.status === 'completed' ? 'منجز' : task.status === 'partial' ? 'جزئي' : 'لم يبدأ'}
+                                                {task.status === 'completed' ? 'בוצע' : task.status === 'partial' ? 'חלקית' : 'טרם בוצע'}
                                             </span>
                                             <div className="flex-1">
                                                 <p className="font-bold text-gray-800 text-base">{task.task}</p>
                                                 {task.steps && (
                                                     <div className="text-gray-600 text-sm mt-2 bg-white p-3 rounded-lg border border-gray-100 whitespace-pre-wrap">
-                                                        <strong className="block mb-1 text-gray-500 text-xs">خطوات التنفيذ:</strong>
+                                                        <strong className="block mb-1 text-gray-500 text-xs">דרכי פעולה:</strong>
                                                         {task.steps}
                                                     </div>
                                                 )}
-                                                <p className="text-gray-500 text-xs mt-2 font-medium">
-                                                    👤 المسؤول: <span className="text-gray-700 font-bold">{task.responsible || '---'}</span> | 📅 الموعد: <span className="text-gray-700 font-bold">{task.startDate || '---'}</span>
+                                                <p className="text-gray-500 text-xs mt-2 font-medium flex flex-wrap gap-x-4">
+                                                    <span>👤 אחראי משימה: <span className="text-gray-700 font-bold">{task.responsible || '---'}</span></span>
+                                                    <span>📅 לו"ז: <span className="text-gray-700 font-bold">{task.startDate || '---'}</span></span>
+                                                    <span>🎯 מדדי תוצאה: <span className="text-gray-700 font-bold">{task.outcomeMeasures || '---'}</span></span>
                                                 </p>
                                             </div>
                                         </li>

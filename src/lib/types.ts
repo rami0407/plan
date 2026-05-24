@@ -248,6 +248,7 @@ export interface AnnualGoalTask {
   steps: string;
   startDate: string;
   responsible: string;
+  outcomeMeasures?: string;
   status: 'not-started' | 'partial' | 'completed';
 }
 
