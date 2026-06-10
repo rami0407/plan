@@ -4,7 +4,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { useRouter, usePathname } from 'next/navigation';
 
 export type UserRole = 'admin' | 'coordinator' | 'user' | 'pending' | 'unauthorized';
@@ -60,15 +60,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         setCoordinatorId(null);
                     } else {
                         try {
-                            // 2. Check User Document for Role and Status in 'users' collection
-                            const normalizedEmail = user.email?.toLowerCase() ?? '';
-                            const userQuery = query(collection(db, 'users'), where('email', '==', normalizedEmail));
-                            const userSnapshot = await getDocs(userQuery);
+                            // 2. Direct UID lookup in 'users' collection (most reliable)
+                            const userDocSnap = await getDoc(doc(db, 'users', user.uid));
 
                             if (isMounted) {
-                                if (!userSnapshot.empty) {
-                                    const userData = userSnapshot.docs[0].data();
-                                    
+                                if (userDocSnap.exists()) {
+                                    const userData = userDocSnap.data();
+
                                     if (userData.status === 'pending') {
                                         setRole('pending');
                                         setCoordinatorId(null);
@@ -79,18 +77,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                                             setCoordinatorId(null);
                                         } else if (userRole === 'coordinator') {
                                             setRole('coordinator');
-                                            // Look up coordinatorId in coordinators collection if possible
-                                            const qCoord = query(collection(db, 'coordinators'), where('email', '==', user.email));
-                                            const snapshotCoord = await getDocs(qCoord);
-                                            const coordId = !snapshotCoord.empty ? snapshotCoord.docs[0].id : userSnapshot.docs[0].id;
-                                            setCoordinatorId(coordId);
+                                            // Also check coordinators collection for coordId
+                                            const coordDocSnap = await getDoc(doc(db, 'coordinators', user.uid));
+                                            setCoordinatorId(coordDocSnap.exists() ? user.uid : user.uid);
                                         } else {
                                             setRole('user');
                                             setCoordinatorId(null);
                                         }
                                     }
                                 } else {
-                                    // 3. Fallback: Check 'coordinators' collection (legacy or separate)
+                                    // 3. Fallback: email-based search in 'coordinators' (legacy entries)
+                                    const normalizedEmail = user.email?.toLowerCase() ?? '';
                                     const qCoord = query(collection(db, 'coordinators'), where('email', '==', normalizedEmail));
                                     const snapshotCoord = await getDocs(qCoord);
 
@@ -98,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                                         setRole('coordinator');
                                         setCoordinatorId(snapshotCoord.docs[0].id);
                                     } else {
-                                        // 4. Check if in pendingUsers collection
+                                        // 4. Check pendingUsers collection (legacy)
                                         const qPending = query(collection(db, 'pendingUsers'), where('email', '==', normalizedEmail));
                                         const snapshotPending = await getDocs(qPending);
 
@@ -106,7 +103,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                                             setRole('pending');
                                             setCoordinatorId(null);
                                         } else {
-                                            // Not found anywhere -> Unauthorized
                                             setRole('unauthorized');
                                             setCoordinatorId(null);
                                         }
