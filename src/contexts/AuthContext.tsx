@@ -61,7 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     } else {
                         try {
                             // 2. Check User Document for Role and Status in 'users' collection
-                            const userQuery = query(collection(db, 'users'), where('email', '==', user.email));
+                            const normalizedEmail = user.email?.toLowerCase() ?? '';
+                            const userQuery = query(collection(db, 'users'), where('email', '==', normalizedEmail));
                             const userSnapshot = await getDocs(userQuery);
 
                             if (isMounted) {
@@ -90,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                                     }
                                 } else {
                                     // 3. Fallback: Check 'coordinators' collection (legacy or separate)
-                                    const qCoord = query(collection(db, 'coordinators'), where('email', '==', user.email));
+                                    const qCoord = query(collection(db, 'coordinators'), where('email', '==', normalizedEmail));
                                     const snapshotCoord = await getDocs(qCoord);
 
                                     if (!snapshotCoord.empty) {
@@ -98,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                                         setCoordinatorId(snapshotCoord.docs[0].id);
                                     } else {
                                         // 4. Check if in pendingUsers collection
-                                        const qPending = query(collection(db, 'pendingUsers'), where('email', '==', user.email));
+                                        const qPending = query(collection(db, 'pendingUsers'), where('email', '==', normalizedEmail));
                                         const snapshotPending = await getDocs(qPending);
 
                                         if (!snapshotPending.empty) {
@@ -156,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (user) {
             if (role === 'unauthorized') {
                 signOut(auth).catch(err => console.error("Error signing out:", err));
-                alert('عذراً، هذا الحساب غير مصرح له بالدخول أو تم رفضه. يرجى التواصل مع الإدارة.');
+                alert('חשבון זה אינו מורשה לכניסה או נדחה. אנא פנה למנהל המערכת.');
                 return;
             }
 

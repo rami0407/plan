@@ -75,7 +75,7 @@ export default function PrincipalDashboard() {
             // 1. Add to Coordinators (so AuthContext allows login) using user's UID as document ID
             await addCoordinator({
                 name: user.name,
-                email: user.email,
+                email: user.email?.toLowerCase(),
                 phone: user.phone || '',
                 subject: 'عام',
                 avatar: user.name ? user.name.charAt(0) : 'ع',
@@ -86,9 +86,10 @@ export default function PrincipalDashboard() {
             await setDoc(doc(db, 'users', user.uid), {
                 uid: user.uid,
                 name: user.name,
-                email: user.email,
+                email: user.email?.toLowerCase(),
                 role: 'coordinator',
-                subject: 'عام',
+                status: 'approved',
+                subject: 'עام',
                 createdAt: new Date().toISOString()
             });
 

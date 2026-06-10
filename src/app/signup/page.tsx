@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import Link from 'next/link';
@@ -48,17 +48,17 @@ export default function SignUpPage() {
       await setDoc(doc(db, 'users', user.uid), {
         uid: user.uid,
         name: formData.name,
-        email: formData.email,
+        email: formData.email.toLowerCase(),
         subject: formData.subject,
         phone: formData.phone,
-        role: 'coordinator', // Default role for new signups
-        status: 'pending',   // Needs admin approval
+        role: 'coordinator',
+        status: 'pending',
         createdAt: new Date().toISOString()
       });
 
+      // Sign out immediately to prevent race condition in AuthContext
+      await signOut(auth);
       setSuccess(true);
-      // Optional: Sign out user immediately so they can't access dashboard until approved
-      // await auth.signOut(); 
     } catch (err: any) {
       console.error('SignUp error:', err);
       if (err.code === 'auth/email-already-in-use') {
