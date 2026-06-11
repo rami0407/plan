@@ -8,10 +8,12 @@ import { collection, query, where, onSnapshot, updateDoc, doc, orderBy } from 'f
 import { Notification } from '@/lib/types';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 export default function Header() {
     const router = useRouter();
     const { user, logout } = useAuth();
+    const { t, language, toggleLanguage } = useTranslation();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [showNotifications, setShowNotifications] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -88,9 +90,17 @@ export default function Header() {
     return (
         <header className={styles.header}>
             <div className={styles.title}>
-                <h2>لوحة التحكم</h2>
+                <h2>{t('dashboard')}</h2>
             </div>
             <div className={styles.actions}>
+                {/* Language Switcher */}
+                <button
+                    onClick={toggleLanguage}
+                    className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-xl font-bold text-sm text-gray-700 transition-all hover:scale-105 ml-2 cursor-pointer"
+                >
+                    🌐 {language === 'ar' ? 'עברית' : 'العربية'}
+                </button>
+
                 <span className="text-sm text-gray-600 ml-4 font-bold">
                     {user?.email}
                 </span>
@@ -113,8 +123,8 @@ export default function Header() {
                     {showNotifications && (
                         <div className="absolute left-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 overflow-hidden animate-fade-in">
                             <div className="p-3 bg-gray-50 border-b border-gray-200 font-bold flex justify-between items-center">
-                                <span>التنبيهات</span>
-                                <span className="text-xs text-gray-500">{unreadCount} غير مقروء</span>
+                                <span>{t('notifications')}</span>
+                                <span className="text-xs text-gray-500">{unreadCount} {t('unread')}</span>
                             </div>
                             <div className="max-h-96 overflow-y-auto">
                                 {notifications.length > 0 ? (
@@ -141,13 +151,13 @@ export default function Header() {
                                                         return new Date(date).toLocaleDateString('he-IL');
                                                     })()}
                                                 </span>
-                                                {notif.link && <span className="text-primary font-bold">عرض التفاصيل</span>}
+                                                {notif.link && <span className="text-primary font-bold">{t('view_details')}</span>}
                                             </div>
                                         </div>
                                     ))
                                 ) : (
                                     <div className="p-8 text-center text-gray-400">
-                                        <p>لا توجد تنبيهات جديدة</p>
+                                        <p>{t('no_new_notifications')}</p>
                                     </div>
                                 )}
                             </div>
@@ -160,9 +170,9 @@ export default function Header() {
                 <button
                     onClick={logout}
                     className="btn bg-red-500 hover:bg-red-600 text-white px-4 py-2 flex items-center gap-2 text-sm shadow-md transition-transform hover:scale-105"
-                    title="تسجيل الخروج"
+                    title={t('logout')}
                 >
-                    🚪 خروج
+                    🚪 {t('exit')}
                 </button>
             </div>
         </header>

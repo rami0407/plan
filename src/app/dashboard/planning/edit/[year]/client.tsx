@@ -7,11 +7,13 @@ import { TeachingStaffMember, IntegrationPlan, SchoolProfileRow, BookListRow, An
 import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/contexts/LanguageContext';
 import * as XLSX from 'xlsx';
 import { exportPlanToWord } from '@/lib/wordExport';
 
 export default function EditPlanClient({ year }: { year: string }) {
     const router = useRouter();
+    const { t } = useTranslation();
     const academicYear = parseInt(year);
 
     const [loading, setLoading] = useState(true);
@@ -1259,22 +1261,22 @@ export default function EditPlanClient({ year }: { year: string }) {
 
             {/* Annual Goals */}
             <div className="glass-panel p-8 mb-8 print:border print:border-gray-300">
-                <h2 className="text-2xl font-black mb-4">الأهداف العامة للسنة</h2>
+                <h2 className="text-2xl font-black mb-4">{t('annual_goals')}</h2>
                 <textarea
                     value={yearlyGoals}
                     onChange={(e) => setYearlyGoals(e.target.value)}
                     className="w-full px-6 py-5 bg-white border-3 border-primary/30 rounded-2xl h-48 print:border print:border-gray-400 print:h-auto print:min-h-32 focus:border-primary focus:ring-4 focus:ring-primary/20 font-medium text-lg transition-all resize-none shadow-lg"
-                    placeholder="اكتب الأهداف الرئيسية..."
+                    placeholder={t('write_yearly_goals')}
                 />
             </div>
 
             {/* Goals and Tasks Table */}
             <div className="glass-panel p-8 mb-8 print:border print:border-gray-300">
                 <div className="flex items-center justify-between mb-8 print:mb-4">
-                    <h2 className="text-2xl font-black">جدول الأهداف والمهام التنفيذية</h2>
+                    <h2 className="text-2xl font-black">{t('goals_tasks_table')}</h2>
                     <button onClick={addGoal} className="btn btn-primary px-4 py-2 print:hidden flex items-center gap-2">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                        إضافة هدف جديد
+                        {t('add_goal')}
                     </button>
                 </div>
 
@@ -1287,40 +1289,40 @@ export default function EditPlanClient({ year }: { year: string }) {
                                 <tbody>
                                     {/* Goal Row */}
                                     <tr className="bg-primary/5">
-                                        <td className="p-3 border-b border-primary/10 font-bold text-primary w-32 align-middle">الهدف</td>
+                                        <td className="p-3 border-b border-primary/10 font-bold text-primary w-32 align-middle">{t('goal')}</td>
                                         <td className="p-2 border-b border-primary/10" colSpan={6}>
                                             <input
                                                 type="text"
                                                 value={goal.title}
                                                 onChange={(e) => setGoals(goals.map(g => g.id === goal.id ? { ...g, title: e.target.value } : g))}
                                                 className="w-full px-3 py-2 bg-transparent border-none focus:ring-0 font-bold text-lg placeholder-gray-400"
-                                                placeholder="اكتب الهدف..."
+                                                placeholder={t('write_goal')}
                                             />
                                         </td>
                                     </tr>
 
                                     {/* Objective Row */}
                                     <tr className="bg-primary/5">
-                                        <td className="p-3 border-b border-primary/10 font-bold text-primary align-middle">المؤشر المستهدف</td>
+                                        <td className="p-3 border-b border-primary/10 font-bold text-primary align-middle">{t('target_indicator')}</td>
                                         <td className="p-2 border-b border-primary/10" colSpan={6}>
                                             <input
                                                 type="text"
                                                 value={goal.objective}
                                                 onChange={(e) => setGoals(goals.map(g => g.id === goal.id ? { ...g, objective: e.target.value } : g))}
                                                 className="w-full px-3 py-2 bg-transparent border-none focus:ring-0 font-medium placeholder-gray-400"
-                                                placeholder="اكتب المؤشر المستهدف..."
+                                                placeholder={t('write_target_indicator')}
                                             />
                                         </td>
                                     </tr>
 
                                     {/* Table Header */}
                                     <tr className="bg-gray-50 border-b border-gray-200 text-sm text-gray-500">
-                                        <th className="p-3 text-right font-bold">משימה</th>
-                                        <th className="p-3 text-right font-bold">דרכי פעולה</th>
-                                        <th className="p-3 text-right font-bold w-48">לו"ז</th>
-                                        <th className="p-3 text-right font-bold w-48">אחראי משימה</th>
-                                        <th className="p-3 text-right font-bold w-48">מדדי תוצאה</th>
-                                        <th className="p-3 text-right font-bold w-32">סטטוס</th>
+                                        <th className="p-3 text-right font-bold">{t('task')}</th>
+                                        <th className="p-3 text-right font-bold">{t('action_steps')}</th>
+                                        <th className="p-3 text-right font-bold w-48">{t('schedule')}</th>
+                                        <th className="p-3 text-right font-bold w-48">{t('task_owner')}</th>
+                                        <th className="p-3 text-right font-bold w-48">{t('outcome_measures')}</th>
+                                        <th className="p-3 text-right font-bold w-32">{t('status')}</th>
                                         <th className="p-3 print:hidden w-12"></th>
                                     </tr>
 
@@ -1343,7 +1345,7 @@ export default function EditPlanClient({ year }: { year: string }) {
                                                     }}
                                                     rows={1}
                                                     className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm resize-none overflow-hidden"
-                                                    placeholder="הזן משימה..."
+                                                    placeholder={t('task') + '...'}
                                                 />
                                             </td>
                                             <td className="p-2 align-top">
@@ -1362,7 +1364,7 @@ export default function EditPlanClient({ year }: { year: string }) {
                                                     }}
                                                     rows={1}
                                                     className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm resize-none overflow-hidden"
-                                                    placeholder="הזן דרכי פעולה..."
+                                                    placeholder={t('action_steps') + '...'}
                                                 />
                                             </td>
                                             <td className="p-2 align-top">
@@ -1379,7 +1381,7 @@ export default function EditPlanClient({ year }: { year: string }) {
                                                     value={task.responsible}
                                                     onChange={(e) => updateTask(goal.id, task.id, 'responsible', e.target.value)}
                                                     className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
-                                                    placeholder="אחראי משימה..."
+                                                    placeholder={t('task_owner') + '...'}
                                                 />
                                             </td>
                                             <td className="p-2 align-top">
@@ -1398,7 +1400,7 @@ export default function EditPlanClient({ year }: { year: string }) {
                                                     }}
                                                     rows={1}
                                                     className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm resize-none overflow-hidden"
-                                                    placeholder="הזן מדדי תוצאה..."
+                                                    placeholder={t('outcome_measures') + '...'}
                                                 />
                                             </td>
                                             <td className="p-2 align-top">

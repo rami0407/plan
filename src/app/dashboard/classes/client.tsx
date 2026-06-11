@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 // 18 Classes
 const CLASSES = [
@@ -31,6 +32,7 @@ const YEARS = Array.from({ length: 15 }, (_, i) => 2026 + i);
 
 export default function ClassesClient() {
     const router = useRouter();
+    const { t } = useTranslation();
     const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
     // Load last selection from localStorage
@@ -56,25 +58,25 @@ export default function ClassesClient() {
                         <div>
                             <h1 className="text-4xl font-black text-gray-800 flex items-center gap-3">
                                 <span className="text-5xl">📚</span>
-                                نظام الصفوف المدرسية
+                                {t('school_classes_system')}
                             </h1>
-                            <p className="text-gray-600 mt-2 text-lg">إدارة متكاملة لـ 18 صف دراسي - 4 تقييمات ربع سنوية</p>
+                            <p className="text-gray-600 mt-2 text-lg">{t('classes_system_desc')}</p>
                         </div>
                         <Link
                             href="/dashboard"
                             className="px-6 py-3 bg-gray-200 hover:bg-gray-300 rounded-xl transition-all font-bold text-gray-700"
                         >
-                            ← الرئيسية
+                            ← {t('back_to_home')}
                         </Link>
                     </div>
 
                     {/* Year Dropdown */}
                     <div className="flex items-center gap-4">
-                        <label className="text-gray-700 font-bold">📅 السنة الدراسية:</label>
+                        <label className="text-gray-700 font-bold">📅 {t('school_year')}</label>
                         <select
                             value={selectedYear}
                             onChange={(e) => setSelectedYear(Number(e.target.value))}
-                            className="px-6 py-3 bg-white border-2 border-blue-300 rounded-xl font-bold text-gray-800 shadow-lg hover:border-blue-500 focus:border-blue-600 focus:outline-none transition-colors"
+                            className="px-6 py-3 bg-white border-2 border-blue-300 rounded-xl font-bold text-gray-800 shadow-lg hover:border-blue-500 focus:border-blue-600 focus:outline-none transition-colors cursor-pointer"
                         >
                             {YEARS.map(year => (
                                 <option key={year} value={year}>
@@ -89,19 +91,19 @@ export default function ClassesClient() {
                 <div className="bg-white rounded-3xl shadow-2xl p-8">
                     <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
                         <span>🎓</span>
-                        اختر الصف الدراسي
+                        {t('select_class')}
                     </h2>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                         {CLASSES.map(cls => (
                             <button
                                 key={cls.id}
                                 onClick={() => handleClassClick(cls.id)}
-                                className="p-6 rounded-xl border-2 border-gray-200 hover:border-blue-500 bg-white hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all transform hover:scale-105 shadow-md hover:shadow-xl"
+                                className="p-6 rounded-xl border-2 border-gray-200 hover:border-blue-500 bg-white hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all transform hover:scale-105 shadow-md hover:shadow-xl cursor-pointer"
                             >
                                 <div className="text-center">
                                     <div className="text-4xl mb-3">📖</div>
-                                    <div className="font-bold text-gray-800 text-base">{cls.name}</div>
-                                    <div className="text-xs text-gray-500 mt-2">انقر للدخول</div>
+                                    <div className="font-bold text-gray-800 text-base">{t(cls.name)}</div>
+                                    <div className="text-xs text-gray-500 mt-2">{t('click_to_enter')}</div>
                                 </div>
                             </button>
                         ))}
@@ -113,30 +115,30 @@ export default function ClassesClient() {
                     <div className="bg-white rounded-2xl p-6 shadow-lg border-l-4 border-blue-500">
                         <div className="flex items-center gap-3 mb-3">
                             <span className="text-4xl">📊</span>
-                            <h3 className="font-bold text-gray-800">محرر قوي</h3>
+                            <h3 className="font-bold text-gray-800">{t('editor_power')}</h3>
                         </div>
                         <p className="text-gray-600 text-sm">
-                            محرر جداول متكامل مع دعم Excel والتعديل المباشر
+                            {t('editor_power_desc')}
                         </p>
                     </div>
 
                     <div className="bg-white rounded-2xl p-6 shadow-lg border-l-4 border-green-500">
                         <div className="flex items-center gap-3 mb-3">
                             <span className="text-4xl">🤖</span>
-                            <h3 className="font-bold text-gray-800">تحليل ذكي</h3>
+                            <h3 className="font-bold text-gray-800">{t('smart_analysis')}</h3>
                         </div>
                         <p className="text-gray-600 text-sm">
-                            AI للتحليل التلقائي والتوصيات والمقارنة
+                            {t('smart_analysis_desc')}
                         </p>
                     </div>
 
                     <div className="bg-white rounded-2xl p-6 shadow-lg border-l-4 border-purple-500">
                         <div className="flex items-center gap-3 mb-3">
                             <span className="text-4xl">📈</span>
-                            <h3 className="font-bold text-gray-800">مقارنة تلقائية</h3>
+                            <h3 className="font-bold text-gray-800">{t('auto_comparison')}</h3>
                         </div>
                         <p className="text-gray-600 text-sm">
-                            تتبع التقدم بين الأرباع الأربعة تلقائياً
+                            {t('auto_comparison_desc')}
                         </p>
                     </div>
                 </div>

@@ -2,16 +2,18 @@
 
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 export default function DashboardPage() {
     const { user } = useAuth();
-    const displayName = user?.displayName || user?.email?.split('@')[0] || 'المعلم';
+    const { t } = useTranslation();
+    const displayName = user?.displayName || user?.email?.split('@')[0] || t('user');
 
     return (
         <div className="animate-fade-in">
             <div className="mb-8">
-                <h1 className="mb-2">مرحباً بك، {displayName} 👋</h1>
-                <p className="text-gray-500 text-lg">نظرة عامة على نشاطاتك اليومية</p>
+                <h1 className="mb-2">{t('welcome_back')} {displayName} 👋</h1>
+                <p className="text-gray-500 text-lg">{t('daily_overview')}</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -26,8 +28,8 @@ export default function DashboardPage() {
                                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                             </svg>
                         </div>
-                        <h3 className="text-xl font-bold text-gray-800 mb-2">الصفوف المدرسية</h3>
-                        <p className="text-gray-500 text-sm">إدارة الطلاب، الحضور والغياب، والبيانات الصفية</p>
+                        <h3 className="text-xl font-bold text-gray-800 mb-2">{t('school_classes')}</h3>
+                        <p className="text-gray-500 text-sm">{t('classes_desc')}</p>
                     </div>
                 </Link>
 
@@ -42,8 +44,8 @@ export default function DashboardPage() {
                                 <line x1="16" x2="8" y1="17" y2="17" />
                             </svg>
                         </div>
-                        <h3 className="text-xl font-bold text-gray-800 mb-2">خطط العمل</h3>
-                        <p className="text-gray-500 text-sm">بناء الخطط السنوية، الأهداف، والمهام</p>
+                        <h3 className="text-xl font-bold text-gray-800 mb-2">{t('work_plans')}</h3>
+                        <p className="text-gray-500 text-sm">{t('planning_desc')}</p>
                     </div>
                 </Link>
 
@@ -56,8 +58,8 @@ export default function DashboardPage() {
                                 <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
                             </svg>
                         </div>
-                        <h3 className="text-xl font-bold text-gray-800 mb-2">خطط التدخل</h3>
-                        <p className="text-gray-500 text-sm">متابعة الطلاب المتعثرين وخطط الدعم الفردية</p>
+                        <h3 className="text-xl font-bold text-gray-800 mb-2">{t('intervention_plan')}</h3>
+                        <p className="text-gray-500 text-sm">{t('intervention_desc')}</p>
                     </div>
                 </Link>
 
@@ -72,8 +74,8 @@ export default function DashboardPage() {
                                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                             </svg>
                         </div>
-                        <h3 className="text-xl font-bold text-gray-800 mb-2">البروتوكلات</h3>
-                        <p className="text-gray-500 text-sm">توثيق الجلسات والاجتماعات الرسمية</p>
+                        <h3 className="text-xl font-bold text-gray-800 mb-2">{t('meeting_protocols')}</h3>
+                        <p className="text-gray-500 text-sm">{t('protocols_desc')}</p>
                     </div>
                 </Link>
 
@@ -87,8 +89,8 @@ export default function DashboardPage() {
                                 <line x1="6" x2="6" y1="20" y2="14" />
                             </svg>
                         </div>
-                        <h3 className="text-xl font-bold text-gray-800 mb-2">التحليلات والاحصائيات</h3>
-                        <p className="text-gray-500 text-sm">تقارير بيانية عن الأداء والتقدم</p>
+                        <h3 className="text-xl font-bold text-gray-800 mb-2">{t('analytics_stats')}</h3>
+                        <p className="text-gray-500 text-sm">{t('analytics_desc')}</p>
                     </div>
                 </Link>
             </div>

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/contexts/LanguageContext';
 import styles from './Sidebar.module.css';
 
 const Icons = {
@@ -105,13 +106,15 @@ const Icons = {
 
 export default function Sidebar() {
     const { user, role, logout } = useAuth();
+    const { t } = useTranslation();
     const isAdmin = role === 'admin';
     const isCoordinator = role === 'coordinator';
 
-    const displayName = user?.displayName || user?.email?.split('@')[0] || 'المستخدم';
+    const displayName = user?.displayName || user?.email?.split('@')[0] || t('user');
 
     // Mapping roles to display text
-    const roleText = isAdmin ? 'مدير المدرسة' : isCoordinator ? 'مركز الموضوع' : 'معلم';
+    const roleKey = isAdmin ? 'principal' : isCoordinator ? 'coordinator' : 'teacher';
+    const roleText = t(roleKey);
 
     return (
         <aside className={styles.sidebar}>
@@ -119,7 +122,7 @@ export default function Sidebar() {
                 <div className={styles.logoIcon}>
                     <Icons.School />
                 </div>
-                <span>مدرستي</span>
+                <span>{t('my_school')}</span>
             </div>
 
             <nav className={styles.nav}>
@@ -127,7 +130,7 @@ export default function Sidebar() {
                     <div className={styles.navIcon}>
                         <Icons.Home />
                     </div>
-                    <span>الصفحة الرئيسية</span>
+                    <span>{t('home')}</span>
                 </Link>
 
                 {/* Admin Only Links */}
@@ -140,21 +143,21 @@ export default function Sidebar() {
                                     <polyline points="22,6 12,13 2,6"></polyline>
                                 </svg>
                             </div>
-                            <span>البريد الوارد</span>
+                            <span>{t('inbox')}</span>
                         </Link>
 
                         <Link href="/dashboard/principal" className={styles.navItem}>
                             <div className={styles.navIcon}>
                                 <Icons.Principal />
                             </div>
-                            <span>لوحة تحكم المدير</span>
+                            <span>{t('principal_dashboard')}</span>
                         </Link>
 
                         <Link href="/coordinator-portal" className={styles.navItem}>
                             <div className={styles.navIcon}>
                                 <Icons.Coordinators />
                             </div>
-                            <span>بوابة المركزين</span>
+                            <span>{t('coordinator_portal')}</span>
                         </Link>
                     </>
                 )}
@@ -164,28 +167,28 @@ export default function Sidebar() {
                     <div className={styles.navIcon}>
                         <Icons.Calendar />
                     </div>
-                    <span>التقويم المدرسي</span>
+                    <span>{t('school_calendar')}</span>
                 </Link>
 
                 <Link href="/dashboard/classes" className={styles.navItem}>
                     <div className={styles.navIcon}>
                         <Icons.Class />
                     </div>
-                    <span>الصفوف المدرسية</span>
+                    <span>{t('school_classes')}</span>
                 </Link>
 
                 <Link href="/dashboard/tasks" className={styles.navItem}>
                     <div className={styles.navIcon}>
                         <Icons.Tasks />
                     </div>
-                    <span>مهامي</span>
+                    <span>{t('my_tasks')}</span>
                 </Link>
 
                 <Link href="/dashboard/planning" className={styles.navItem}>
                     <div className={styles.navIcon}>
                         <Icons.Plan />
                     </div>
-                    <span>خطط العمل</span>
+                    <span>{t('work_plans')}</span>
                 </Link>
 
                 <Link href="/dashboard/annual-planning" className={styles.navItem}>
@@ -196,28 +199,28 @@ export default function Sidebar() {
                             <line x1="9" y1="21" x2="9" y2="9" />
                         </svg>
                     </div>
-                    <span>التخطيط السنوي</span>
+                    <span>{t('annual_planning')}</span>
                 </Link>
 
                 <Link href="/dashboard/intervention" className={styles.navItem}>
                     <div className={styles.navIcon}>
                         <Icons.Intervention />
                     </div>
-                    <span>خطة التدخل</span>
+                    <span>{t('intervention_plan')}</span>
                 </Link>
 
                 <Link href="/dashboard/personal-intervention" className={styles.navItem}>
                     <div className={styles.navIcon}>
                         <Icons.PersonalPlan />
                     </div>
-                    <span>תכנית התערבות אישית</span>
+                    <span>{t('personal_intervention_plan')}</span>
                 </Link>
 
                 <Link href="/dashboard/protocols" className={styles.navItem} style={{ marginRight: '1.5rem' }}>
                     <div className={styles.navIcon}>
                         <Icons.Protocols />
                     </div>
-                    <span>بروتوكولات الجلسات</span>
+                    <span>{t('meeting_protocols')}</span>
                 </Link>
 
                 {/* Analytics - Admin Only (Typically) */}
@@ -226,7 +229,7 @@ export default function Sidebar() {
                         <div className={styles.navIcon}>
                             <Icons.Analytics />
                         </div>
-                        <span>التحليلات والإحصائيات</span>
+                        <span>{t('analytics_stats')}</span>
                     </Link>
                 )}
             </nav>
@@ -236,7 +239,7 @@ export default function Sidebar() {
                     <h4>{displayName}</h4>
                     <span className="text-xs text-gray-400">{roleText}</span>
                 </div>
-                <button onClick={logout} className="mt-2 text-xs text-red-400 hover:text-red-300">تسجيل الخروج</button>
+                <button onClick={logout} className="mt-2 text-xs text-red-400 hover:text-red-300 cursor-pointer">{t('logout')}</button>
             </div>
         </aside>
     );

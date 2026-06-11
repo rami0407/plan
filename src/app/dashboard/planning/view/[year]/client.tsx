@@ -7,10 +7,12 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { createNotification } from '@/lib/firestoreService';
 import AIAssistant from '@/components/AIAssistant';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { exportPlanToWord } from '@/lib/wordExport';
 
 export default function ReviewPlanClient({ year }: { year: string }) {
     const router = useRouter();
+    const { t } = useTranslation();
     const searchParams = useSearchParams();
     const userId = searchParams.get('userId');
 
@@ -356,7 +358,7 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                 {yearlyGoals && (
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-6">
                         <h3 className="text-xl font-black mb-4 flex items-center gap-2 text-primary">
-                            🎯 الأهداف العامة للسنة
+                            🎯 {t('annual_goals')}
                         </h3>
                         <p className="text-gray-700 whitespace-pre-line text-lg leading-relaxed">{yearlyGoals}</p>
                     </div>
@@ -365,42 +367,42 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                 {/* 7. Detailed Goals */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-6">
                     <h3 className="text-xl font-black mb-4 flex items-center gap-2 text-primary">
-                        🎯 الأهداف السنوية التفصيلية
+                        🎯 {t('detailed_annual_goals')}
                     </h3>
                     <div className="space-y-6">
                         {goals.map((goal, idx) => (
                             <div key={goal.id} className="border border-gray-200 rounded-xl p-5 mb-4">
                                 <div className="flex gap-4 mb-4 border-b border-gray-100 pb-4">
                                     <div className="flex-1">
-                                        <span className="text-xs font-bold text-gray-400">الهدف {idx + 1}</span>
+                                        <span className="text-xs font-bold text-gray-400">{t('goal')} {idx + 1}</span>
                                         <h4 className="text-lg font-bold text-gray-800">{goal.title}</h4>
                                     </div>
                                     <div className="flex-1">
-                                        <span className="text-xs font-bold text-gray-400">المؤشر المستهدف</span>
+                                        <span className="text-xs font-bold text-gray-400">{t('target_indicator')}</span>
                                         <p className="text-gray-700">{goal.objective}</p>
                                     </div>
                                 </div>
-                                <h5 className="font-bold text-sm text-gray-500 mb-2">משימות לביצוע:</h5>
+                                <h5 className="font-bold text-sm text-gray-500 mb-2">{t('tasks_to_execute')}</h5>
                                 <ul className="space-y-3">
                                     {goal.tasks.map(task => (
                                         <li key={task.id} className="flex gap-3 items-start bg-gray-50 p-3 rounded-lg text-sm border border-gray-100">
                                             <span className={`px-2 py-1 rounded text-xs font-bold whitespace-nowrap ${task.status === 'completed' ? 'bg-green-100 text-green-700' :
                                                 task.status === 'partial' ? 'bg-orange-100 text-orange-700' : 'bg-gray-200 text-gray-600'
                                                 }`}>
-                                                {task.status === 'completed' ? 'בוצע' : task.status === 'partial' ? 'חלקית' : 'טרם בוצע'}
+                                                {task.status === 'completed' ? t('completed') : task.status === 'partial' ? t('partial') : t('not_started')}
                                             </span>
                                             <div className="flex-1">
                                                 <p className="font-bold text-gray-800 text-base">{task.task}</p>
                                                 {task.steps && (
                                                     <div className="text-gray-600 text-sm mt-2 bg-white p-3 rounded-lg border border-gray-100 whitespace-pre-wrap">
-                                                        <strong className="block mb-1 text-gray-500 text-xs">דרכי פעולה:</strong>
+                                                        <strong className="block mb-1 text-gray-500 text-xs">{t('action_steps')}:</strong>
                                                         {task.steps}
                                                     </div>
                                                 )}
                                                 <p className="text-gray-500 text-xs mt-2 font-medium flex flex-wrap gap-x-4">
-                                                    <span>👤 אחראי משימה: <span className="text-gray-700 font-bold">{task.responsible || '---'}</span></span>
-                                                    <span>📅 לו"ז: <span className="text-gray-700 font-bold">{task.startDate || '---'}</span></span>
-                                                    <span>🎯 מדדי תוצאה: <span className="text-gray-700 font-bold">{task.outcomeMeasures || '---'}</span></span>
+                                                    <span>👤 {t('task_owner')}: <span className="text-gray-700 font-bold">{task.responsible || '---'}</span></span>
+                                                    <span>📅 {t('schedule')}: <span className="text-gray-700 font-bold">{task.startDate || '---'}</span></span>
+                                                    <span>🎯 {t('outcome_measures')}: <span className="text-gray-700 font-bold">{task.outcomeMeasures || '---'}</span></span>
                                                 </p>
                                             </div>
                                         </li>

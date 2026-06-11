@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AIAssistant from '@/components/AIAssistant';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 // Dynamic year calculation
 const getCurrentYear = () => new Date().getFullYear();
@@ -27,6 +28,7 @@ const mockPlans = [
 
 export default function PlanningPage() {
     const router = useRouter();
+    const { t } = useTranslation();
     const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
     const [showAI, setShowAI] = useState(false);
 
@@ -46,15 +48,15 @@ export default function PlanningPage() {
                         </svg>
                     </div>
                     <div>
-                        <h1 className="mb-1">خطط العمل السنوية</h1>
-                        <p className="text-gray-500 text-lg">نظام إدارة وتخطيط العمل السنوي للمركزين</p>
+                        <h1 className="mb-1">{t('annual_work_plans')}</h1>
+                        <p className="text-gray-500 text-lg">{t('work_plans_desc')}</p>
                     </div>
                     <div className="mr-auto">
                         <button
                             onClick={() => setShowAI(true)}
-                            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl font-bold shadow-xl hover:scale-105 transition-all flex items-center gap-2 animate-pulse"
+                            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl font-bold shadow-xl hover:scale-105 transition-all flex items-center gap-2 animate-pulse cursor-pointer"
                         >
-                            <span>✨</span> مساعد التخطيط الذكي
+                            <span>✨</span> {t('ai_planning_assistant')}
                         </button>
                     </div>
                 </div>
@@ -64,10 +66,10 @@ export default function PlanningPage() {
                 <AIAssistant
                     onClose={() => setShowAI(false)}
                     context={{ selectedYear, mockPlans, currentPlan }}
-                    pageTitle="مساعد التخطيط"
+                    pageTitle={t('ai_planning_assistant')}
                     suggestions={[
-                        { label: 'اقتراح أهداف', prompt: 'اقترح 5 أهداف سنوية رئيسية لمركز تربوي بناءً على السنة الحالية.', icon: '🎯' },
-                        { label: 'تحسين الخطة', prompt: 'كيف يمكنني تحسين كفاءة خطة العمل السنوية؟', icon: '📈' }
+                        { label: t('suggest_goals'), prompt: t('suggest_goals_prompt'), icon: '🎯' },
+                        { label: t('improve_plan'), prompt: t('improve_plan_prompt'), icon: '📈' }
                     ]}
                 />
             )}
@@ -79,9 +81,9 @@ export default function PlanningPage() {
                 <div className="mb-6">
                     <h2 className="text-2xl font-bold mb-2 flex items-center gap-3">
                         <span className="text-3xl">📅</span>
-                        اختر السنة الدراسية
+                        {t('select_school_year')}
                     </h2>
-                    <p className="text-gray-600">قم باختيار السنة لعرض أو تعديل خطة العمل الخاصة بها</p>
+                    <p className="text-gray-600">{t('select_year_desc')}</p>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 mb-4">
@@ -89,12 +91,12 @@ export default function PlanningPage() {
                         <button
                             key={year}
                             onClick={() => setSelectedYear(year)}
-                            className={`p-6 rounded-2xl font-bold text-xl transition-all transform hover:scale-105 ${selectedYear === year
+                            className={`p-6 rounded-2xl font-bold text-xl transition-all transform hover:scale-105 cursor-pointer ${selectedYear === year
                                 ? 'bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] text-white shadow-2xl scale-105'
                                 : 'bg-white border-3 border-gray-200 text-gray-700 hover:border-primary shadow-md'
                                 }`}
                         >
-                            <div className="text-sm opacity-75 mb-1">السنة الدراسية</div>
+                            <div className="text-sm opacity-75 mb-1">{t('school_year_label')}</div>
                             <div className="text-2xl font-black">{year}</div>
                             <div className="text-sm opacity-75 mt-1">/ {year + 1}</div>
                         </button>
@@ -105,7 +107,7 @@ export default function PlanningPage() {
                 <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
                         <span>📆</span>
-                        اختر سنة أخرى
+                        {t('select_another_year')}
                     </label>
                     <select
                         value={selectedYear}
@@ -139,15 +141,15 @@ export default function PlanningPage() {
 
                             <div>
                                 <div className="flex items-center gap-3 mb-2">
-                                    <h2 className="text-3xl font-black">خطة العمل {selectedYear}</h2>
+                                    <h2 className="text-3xl font-black">{t('work_plan')} {selectedYear}</h2>
                                     <span className={`px-4 py-2 rounded-full text-sm font-bold shadow-md ${currentPlan.status === 'APPROVED'
                                         ? 'bg-gradient-to-r from-green-400 to-emerald-500 text-white'
                                         : currentPlan.status === 'SUBMITTED'
                                             ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white'
                                             : 'bg-gradient-to-r from-gray-300 to-gray-400 text-gray-800'
                                         }`}>
-                                        {currentPlan.status === 'APPROVED' ? '✅ معتمدة ومعتمدة' :
-                                            currentPlan.status === 'SUBMITTED' ? '⏳ قيد المراجعة' : '📝 مسودة'}
+                                        {currentPlan.status === 'APPROVED' ? `✅ ${t('approved_status')}` :
+                                            currentPlan.status === 'SUBMITTED' ? `⏳ ${t('pending_status')}` : `📝 ${t('draft_status')}`}
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-gray-600">
@@ -155,7 +157,7 @@ export default function PlanningPage() {
                                         <circle cx="12" cy="12" r="10" />
                                         <polyline points="12 6 12 12 16 14" />
                                     </svg>
-                                    <span className="text-sm">آخر تحديث: {currentPlan.lastModified}</span>
+                                    <span className="text-sm">{t('last_updated')} {currentPlan.lastModified}</span>
                                 </div>
                             </div>
                         </div>
@@ -168,7 +170,7 @@ export default function PlanningPage() {
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                             </svg>
-                            عرض وتعديل الخطة
+                            {t('view_edit_plan')}
                         </Link>
                     </div>
                 </div>
@@ -181,9 +183,9 @@ export default function PlanningPage() {
                             <div className="text-7xl">📋</div>
                         </div>
 
-                        <h3 className="text-3xl font-bold mb-3">لا توجد خطة للعام {selectedYear}</h3>
+                        <h3 className="text-3xl font-bold mb-3">{t('no_plan_for_year')} {selectedYear}</h3>
                         <p className="text-gray-600 text-lg mb-8 max-w-2xl mx-auto">
-                            ابدأ الآن بإنشاء خطة عمل جديدة أو قم باستيراد خطة من عام سابق لتعديلها وإعادة استخدامها
+                            {t('no_plan_desc')}
                         </p>
 
                         <div className="flex gap-4 justify-center">
@@ -195,17 +197,17 @@ export default function PlanningPage() {
                                     <line x1="12" x2="12" y1="5" y2="19" />
                                     <line x1="5" x2="19" y1="12" y2="12" />
                                 </svg>
-                                إنشاء خطة جديدة
+                                {t('create_new_plan')}
                             </Link>
 
                             {mockPlans.length > 0 && (
-                                <button className="btn btn-ghost border-3 border-primary text-lg px-8 py-4 hover:bg-primary hover:text-white">
+                                <button className="btn btn-ghost border-3 border-primary text-lg px-8 py-4 hover:bg-primary hover:text-white cursor-pointer">
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                                         <polyline points="7 10 12 15 17 10" />
                                         <line x1="12" x2="12" y1="15" y2="3" />
                                     </svg>
-                                    استيراد من عام سابق
+                                    {t('import_prev_year')}
                                 </button>
                             )}
                         </div>
@@ -218,7 +220,7 @@ export default function PlanningPage() {
                 <div className="glass-panel p-8">
                     <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
                         <span className="text-2xl">📚</span>
-                        خطط السنوات السابقة
+                        {t('prev_plans')}
                     </h3>
 
                     <div className="grid gap-4">
@@ -237,19 +239,19 @@ export default function PlanningPage() {
                                     </div>
 
                                     <div>
-                                        <span className="font-bold text-xl">خطة {plan.year} / {plan.year + 1}</span>
+                                        <span className="font-bold text-xl">{t('work_plan')} {plan.year} / {plan.year + 1}</span>
                                         <span className={`mr-3 px-3 py-1 rounded-full text-xs font-bold ${plan.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
                                             }`}>
-                                            {plan.status === 'APPROVED' ? '✅ معتمدة' : '📝 مسودة'}
+                                            {plan.status === 'APPROVED' ? `✅ ${t('approved_status')}` : `📝 ${t('draft_status')}`}
                                         </span>
                                     </div>
                                 </div>
 
                                 <button
                                     onClick={() => setSelectedYear(plan.year)}
-                                    className="text-primary font-bold hover:underline flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-primary/10 transition-colors"
+                                    className="text-primary font-bold hover:underline flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-primary/10 transition-colors cursor-pointer"
                                 >
-                                    عرض التفاصيل
+                                    {t('view_details_btn')}
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                         <line x1="5" x2="19" y1="12" y2="12" />
                                         <polyline points="12 5 19 12 12 19" />
