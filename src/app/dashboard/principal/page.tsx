@@ -8,6 +8,7 @@ import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth'
 import Link from 'next/link';
 import AIAssistant from '@/components/AIAssistant';
 import { getPendingUsers, deletePendingUser, addCoordinator, PendingUser } from '@/lib/firestoreService';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 // Firebase Config (Must match the one in lib/firebase.ts)
 const firebaseConfig = {
@@ -34,6 +35,7 @@ interface CoordinatorPlan {
 }
 
 export default function PrincipalDashboard() {
+    const { t, language } = useTranslation();
     // Monthly Values State for 10 Months (Sep - June)
     const [monthlyValues, setMonthlyValues] = useState<Record<string, string>>({});
     const [isSavingValues, setIsSavingValues] = useState(false);
@@ -59,7 +61,7 @@ export default function PrincipalDashboard() {
     }, []);
 
     const handleApproveUser = async (user: PendingUser) => {
-        if (!confirm(`هل أنت متأكد من الموافقة على ${user.name}؟`)) return;
+        if (!confirm(language === 'ar' ? `هل أنت متأكد من الموافقة على ${user.name}؟` : `האם אתה בטוח שברצונך לאשר את ${user.name}?`)) return;
         try {
             // Check if there is an existing coordinator with this email
             const q = query(collection(db, 'coordinators'), where('email', '==', user.email));
@@ -78,7 +80,7 @@ export default function PrincipalDashboard() {
                 email: user.email,
                 phone: user.phone || '',
                 subject: 'عام',
-                avatar: user.name ? user.name.charAt(0) : 'ع',
+                avatar: user.name ? user.name.charAt(0) : (language === 'ar' ? 'ع' : 'מ'),
                 planStatus: 'incomplete'
             }, user.uid);
 
@@ -95,22 +97,22 @@ export default function PrincipalDashboard() {
             // 3. Delete from Pending
             if (user.id) await deletePendingUser(user.id);
             setPendingUsers(prev => prev.filter(u => u.id !== user.id));
-            alert('✅ تم الموافقة على المستخدم بنجاح');
+            alert(language === 'ar' ? '✅ تم الموافقة على المستخدم بنجاح' : '✅ המשתמש אושר בהצלחה');
         } catch (error) {
             console.error("Error approving user:", error);
-            alert('❌ حدث خطأ أثناء الموافقة');
+            alert(language === 'ar' ? '❌ حدث خطأ أثناء الموافقة' : '❌ אירעה שגיאה במהלך האישור');
         }
     };
 
     const handleRejectUser = async (user: PendingUser) => {
-        if (!confirm(`هل أنت متأكد من رفض طلب ${user.name}؟`)) return;
+        if (!confirm(language === 'ar' ? `هل أنت متأكد من رفض طلب ${user.name}؟` : `האם אתה בטוח שברצונך לדחות את בקשת ${user.name}?`)) return;
         try {
             if (user.id) await deletePendingUser(user.id);
             setPendingUsers(prev => prev.filter(u => u.id !== user.id));
-            alert('⚠️ تم رفض الطلب');
+            alert(language === 'ar' ? '⚠️ تم رفض الطلب' : '⚠️ הבקשה נדחתה');
         } catch (error) {
             console.error("Error rejecting user:", error);
-            alert('❌ حدث خطأ أثناء الرفض');
+            alert(language === 'ar' ? '❌ حدث خطأ أثناء الرفض' : '❌ אירעה שגיאה במהלך הדחייה');
         }
     };
 
@@ -169,10 +171,10 @@ export default function PrincipalDashboard() {
                 return Promise.resolve();
             });
             await Promise.all(promises);
-            alert('✅ تم حفظ جميع قيم الأشهر بنجاح');
+            alert(language === 'ar' ? '✅ تم حفظ جميع قيم الأشهر بنجاح' : '✅ כל ערכי החודשים נשמרו בהצלחה');
         } catch (e) {
             console.error("Error saving month values:", e);
-            alert('❌ حدث خطأ أثناء الحفظ');
+            alert(language === 'ar' ? '❌ حدث خطأ أثناء الحفظ' : '❌ אירעה שגיאה במהלך השמירה');
         } finally {
             setIsSavingValues(false);
         }
@@ -187,7 +189,7 @@ export default function PrincipalDashboard() {
 
     const getMonthName = (monthKey: string) => {
         const date = new Date(`${monthKey}-01`);
-        return date.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
+        return date.toLocaleDateString(language === 'ar' ? 'ar-EG' : 'he-IL', { month: 'long', year: 'numeric' });
     };
 
     // User Management State
@@ -229,7 +231,7 @@ export default function PrincipalDashboard() {
             const userRef = doc(db, 'users', userId);
             const userSnap = await getDoc(userRef);
             if (!userSnap.exists()) {
-                alert('❌ لم يتم العثور على المستخدم');
+                alert(language === 'ar' ? '❌ لم يتم العثور على المستخدم' : '❌ המשתמש לא נמצא');
                 return;
             }
             const userData = userSnap.data();
@@ -262,21 +264,21 @@ export default function PrincipalDashboard() {
                 status: 'approved'
             });
 
-            alert('✅ تم اعتماد المستخدم بنجاح');
+            alert(language === 'ar' ? '✅ تم اعتماد المستخدم بنجاح' : '✅ המשתמש אושר בהצלחה');
         } catch (error) {
             console.error('Error approving user:', error);
-            alert('❌ حدث خطأ أثناء الاعتماد');
+            alert(language === 'ar' ? '❌ حدث خطأ أثناء الاعتماد' : '❌ אירעה שגיאה במהלך האישור');
         }
     };
 
     const handleRejectAuthUser = async (userId: string) => {
-        if (!confirm('هل أنت متأكد من رفض وحذف هذا الطلب؟')) return;
+        if (!confirm(language === 'ar' ? 'هل أنت متأكد من رفض وحذف هذا الطلب؟' : 'האם אתה בטוח שברצונך לדחות ולמחוק בקשה זו?')) return;
         try {
             await deleteDoc(doc(db, 'users', userId));
-            alert('✅ تم رفض وحذف الطلب');
+            alert(language === 'ar' ? '✅ تم رفض وحذف الطلب' : '✅ הבקשה נדחתה ונמחקה');
         } catch (error) {
             console.error('Error rejecting user:', error);
-            alert('❌ حدث خطأ أثناء الرفض');
+            alert(language === 'ar' ? '❌ حدث خطأ أثناء الرفض' : '❌ אירעה שגיאה במהלך הדחייה');
         }
     };
 
@@ -330,14 +332,14 @@ export default function PrincipalDashboard() {
             // 4. Sign out secondary
             await signOut(secondaryAuth);
 
-            alert(`✅ تم إضافة المستخدم "${newUser.name}" بنجاح!`);
+            alert(language === 'ar' ? `✅ تم إضافة المستخدم "${newUser.name}" بنجاح!` : `✅ המשתמש "${newUser.name}" נוסף בהצלחה!`);
             setNewUser({ name: '', email: '', password: '', role: 'coordinator', subject: '' });
         } catch (error: any) {
             console.error("Error creating user:", error);
             if (error.code === 'auth/email-already-in-use') {
-                alert('❌ البريد الإلكتروني مستخدم بالفعل');
+                alert(language === 'ar' ? '❌ البريد الإلكتروني مستخدم بالفعل' : '❌ כתובת האימייל כבר בשימוש');
             } else {
-                alert('❌ حدث خطأ أثناء إنشاء المستخدم: ' + error.message);
+                alert(language === 'ar' ? '❌ حدث خطأ أثناء إنشاء المستخدم: ' + error.message : '❌ אירעה שגיאה ביצירת המשתמש: ' + error.message);
             }
         } finally {
             if (secondaryApp) {
@@ -352,13 +354,13 @@ export default function PrincipalDashboard() {
     const getStatusInfo = (status: string) => {
         switch (status) {
             case 'approved':
-                return { label: 'موافق عليها', color: 'bg-green-100 text-green-800 border-green-300' };
+                return { label: t('approved_status'), color: 'bg-green-100 text-green-800 border-green-300' };
             case 'pending':
-                return { label: 'قيد المراجعة', color: 'bg-yellow-100 text-yellow-800 border-yellow-300' };
+                return { label: t('pending_status'), color: 'bg-yellow-100 text-yellow-800 border-yellow-300' };
             case 'rejected':
-                return { label: 'مرفوضة', color: 'bg-red-100 text-red-800 border-red-300' };
+                return { label: t('changes_requested_status'), color: 'bg-red-100 text-red-800 border-red-300' };
             default:
-                return { label: 'مسودة', color: 'bg-gray-100 text-gray-800 border-gray-300' };
+                return { label: t('draft_status'), color: 'bg-gray-100 text-gray-800 border-gray-300' };
         }
     };
 
@@ -388,13 +390,13 @@ export default function PrincipalDashboard() {
                             </svg>
                         </div>
                         <div>
-                            <h1 className="text-4xl font-black mb-2 text-primary">لوحة تحكم المدير</h1>
-                            <p className="text-gray-600 text-lg">نظرة عامة على سير العمل في المدرسة</p>
+                            <h1 className="text-4xl font-black mb-2 text-primary">{t('principal_dashboard')}</h1>
+                            <p className="text-gray-600 text-lg">{t('principal_dashboard_desc')}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
                         <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-200 flex items-center gap-2">
-                            <span className="text-gray-500 font-bold">السنة الدراسية:</span>
+                            <span className="text-gray-500 font-bold">{t('school_year')}</span>
                             <select
                                 value={selectedYear}
                                 onChange={(e) => setSelectedYear(Number(e.target.value))}
@@ -409,10 +411,10 @@ export default function PrincipalDashboard() {
                             onClick={() => setShowAI(true)}
                             className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold shadow-lg hover:scale-105 transition-all flex items-center gap-2 animate-pulse"
                         >
-                            <span>✨</span> المساعد الذكي
+                            <span>✨</span> {t('smart_assistant')}
                         </button>
                         <div className="text-left hidden md:block">
-                            <p className="font-bold text-lg">{new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                            <p className="font-bold text-lg">{new Date().toLocaleDateString(language === 'ar' ? 'ar-EG' : 'he-IL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
                         </div>
                     </div>
                 </div>
@@ -421,23 +423,23 @@ export default function PrincipalDashboard() {
                 <div className="grid grid-cols-5 gap-4 mt-6">
                     <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl">
                         <div className="text-3xl font-black mb-2">{stats.totalPlans}</div>
-                        <div className="text-blue-100">إجمالي الخطط</div>
+                        <div className="text-blue-100">{t('total_plans')}</div>
                     </div>
                     <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-xl">
                         <div className="text-3xl font-black mb-2">{stats.approved}</div>
-                        <div className="text-green-100">خطط موافق عليها</div>
+                        <div className="text-green-100">{t('approved_plans')}</div>
                     </div>
                     <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-white p-6 rounded-xl">
                         <div className="text-3xl font-black mb-2">{stats.pending}</div>
-                        <div className="text-yellow-100">قيد المراجعة</div>
+                        <div className="text-yellow-100">{t('pending_status')}</div>
                     </div>
                     <div className="bg-gradient-to-br from-gray-500 to-gray-600 text-white p-6 rounded-xl">
                         <div className="text-3xl font-black mb-2">{stats.draft}</div>
-                        <div className="text-gray-100">مسودات</div>
+                        <div className="text-gray-100">{t('drafts')}</div>
                     </div>
                     <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-xl">
                         <div className="text-3xl font-black mb-2">{stats.avgCompletion}%</div>
-                        <div className="text-purple-100">متوسط الإنجاز</div>
+                        <div className="text-purple-100">{t('average_completion')}</div>
                     </div>
                 </div>
 
@@ -447,7 +449,7 @@ export default function PrincipalDashboard() {
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-2xl font-bold flex items-center gap-2 text-yellow-800">
                                 <span className="text-yellow-600 bg-yellow-100 p-2 rounded-lg">⏳</span>
-                                طلبات التسجيل الجديدة
+                                {t('new_registration_requests')}
                                 <span className="bg-red-500 text-white text-sm px-3 py-1 rounded-full animate-pulse">{pendingUsers.length}</span>
                             </h2>
                         </div>
@@ -455,11 +457,11 @@ export default function PrincipalDashboard() {
                             <table className="w-full">
                                 <thead className="bg-yellow-50/50">
                                     <tr>
-                                        <th className="text-right p-4 font-bold text-gray-700">الاسم</th>
-                                        <th className="text-right p-4 font-bold text-gray-700">البريد الإلكتروني</th>
-                                        <th className="text-right p-4 font-bold text-gray-700">رقم الهاتف</th>
-                                        <th className="text-right p-4 font-bold text-gray-700">تاريخ الطلب</th>
-                                        <th className="text-center p-4 font-bold text-gray-700">الإجراءات</th>
+                                        <th className="text-right p-4 font-bold text-gray-700">{t('name')}</th>
+                                        <th className="text-right p-4 font-bold text-gray-700">{t('email')}</th>
+                                        <th className="text-right p-4 font-bold text-gray-700">{t('phone')}</th>
+                                        <th className="text-right p-4 font-bold text-gray-700">{t('request_date')}</th>
+                                        <th className="text-center p-4 font-bold text-gray-700">{t('actions_label')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -469,7 +471,7 @@ export default function PrincipalDashboard() {
                                             <td className="p-4">{user.email}</td>
                                             <td className="p-4">{user.phone}</td>
                                             <td className="p-4 text-sm text-gray-500">
-                                                {user.createdAt?.toDate ? user.createdAt.toDate().toLocaleDateString('ar-EG') : 'الآن'}
+                                                {user.createdAt?.toDate ? user.createdAt.toDate().toLocaleDateString(language === 'ar' ? 'ar-EG' : 'he-IL') : (language === 'ar' ? 'الآن' : 'עכשיו')}
                                             </td>
                                             <td className="p-4">
                                                 <div className="flex items-center justify-center gap-2">
@@ -477,13 +479,13 @@ export default function PrincipalDashboard() {
                                                         onClick={() => handleApproveUser(user)}
                                                         className="btn bg-green-500 hover:bg-green-600 text-white px-4 py-1 rounded-lg shadow-sm text-sm"
                                                     >
-                                                        موافقة ✅
+                                                        {t('approve')} ✅
                                                     </button>
                                                     <button
                                                         onClick={() => handleRejectUser(user)}
                                                         className="btn bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded-lg shadow-sm text-sm"
                                                     >
-                                                        رفض ⛔
+                                                        {t('reject')} ⛔
                                                     </button>
                                                 </div>
                                             </td>
@@ -500,26 +502,26 @@ export default function PrincipalDashboard() {
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-2xl font-bold flex items-center gap-2 text-indigo-900">
                             <span className="text-indigo-600 bg-indigo-100 p-2 rounded-lg">👥</span>
-                            إدارة المستخدمين
+                            {t('users_management')}
                         </h2>
                     </div>
 
                     <form onSubmit={handleAddUser} className="bg-indigo-50/50 p-6 rounded-xl border border-indigo-100">
-                        <h3 className="text-lg font-bold text-indigo-800 mb-4">إضافة مستخدم جديد (مركز/معلم)</h3>
+                        <h3 className="text-lg font-bold text-indigo-800 mb-4">{t('add_new_coordinator_teacher')}</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">اسم المستخدم</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">{t('username')}</label>
                                 <input
                                     type="text"
                                     required
                                     className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    placeholder="الاسم الكامل..."
+                                    placeholder={language === 'ar' ? 'الاسم الكامل...' : 'שם מלא...'}
                                     value={newUser.name}
                                     onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">البريد الإلكتروني</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">{t('email')}</label>
                                 <input
                                     type="email"
                                     required
@@ -530,7 +532,7 @@ export default function PrincipalDashboard() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">كلمة المرور</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">{t('password')}</label>
                                 <input
                                     type="text"
                                     required
@@ -542,22 +544,22 @@ export default function PrincipalDashboard() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">المادة / الدور</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">{t('subject_role')}</label>
                                 <div className="flex gap-2">
                                     <select
                                         className="p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none"
                                         value={newUser.role}
                                         onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
                                     >
-                                        <option value="coordinator">مركز موضوع</option>
-                                        <option value="teacher">معلم</option>
-                                        <option value="admin">مدير النظام</option>
+                                        <option value="coordinator">{t('coordinator')}</option>
+                                        <option value="teacher">{t('teacher')}</option>
+                                        <option value="admin">{t('principal')}</option>
                                     </select>
                                     <input
                                         type="text"
                                         required
                                         className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none"
-                                        placeholder="الرياضيات / لغة عربية..."
+                                        placeholder={language === 'ar' ? 'الرياضيات / لغة عربية...' : 'מתמטיקה / עברית...'}
                                         value={newUser.subject}
                                         onChange={(e) => setNewUser({ ...newUser, subject: e.target.value })}
                                     />
@@ -573,12 +575,12 @@ export default function PrincipalDashboard() {
                                 {addingUser ? (
                                     <>
                                         <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                                        جاري الإضافة...
+                                        {language === 'ar' ? 'جاري الإضافة...' : 'מוסיף...'}
                                     </>
                                 ) : (
                                     <>
                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                                        إضافة مستخدم
+                                        {t('add_user_btn')}
                                     </>
                                 )}
                             </button>
@@ -589,7 +591,7 @@ export default function PrincipalDashboard() {
                     <div className="mt-8 border-t pt-6">
                         <h3 className="text-lg font-bold text-indigo-800 mb-4 flex items-center gap-2">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                            قائمة المستخدمين الحاليين
+                            {t('current_users_list')}
                         </h3>
                         <UsersListTable />
                     </div>
@@ -601,14 +603,14 @@ export default function PrincipalDashboard() {
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-2xl font-bold flex items-center gap-2">
                             <span className="text-purple-600">✨</span>
-                            إعداد قيم الأشهر للعام الدراسي {selectedYear}
+                            {t('monthly_values_setting')} {selectedYear}
                         </h2>
                         <button
                             onClick={handleSaveAllValues}
                             disabled={isSavingValues}
                             className={`btn bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-bold shadow-lg shadow-purple-200 transition-all ${isSavingValues ? 'opacity-70 cursor-not-allowed' : 'hover:-translate-y-1'}`}
                         >
-                            {isSavingValues ? 'جاري الحفظ...' : 'حفظ جميع القيم 💾'}
+                            {isSavingValues ? (language === 'ar' ? 'جاري الحفظ...' : 'שומר...') : t('save_all_values')}
                         </button>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -620,7 +622,7 @@ export default function PrincipalDashboard() {
                                 <input
                                     type="text"
                                     className="w-full p-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 outline-none text-sm"
-                                    placeholder="القيمة التربوية..."
+                                    placeholder={language === 'ar' ? 'القيمة التربوية...' : 'ערך חינוכי...'}
                                     value={monthlyValues[monthKey] || ''}
                                     onChange={(e) => handleValueChange(monthKey, e.target.value)}
                                 />
@@ -632,12 +634,12 @@ export default function PrincipalDashboard() {
                 {/* Plans Table */}
                 <div className="bg-white rounded-2xl shadow-xl p-6">
                     <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-2xl font-bold">خطط المركزين للعام {selectedYear}</h2>
+                        <h2 className="text-2xl font-bold">{t('coordinators_plans_year')} {selectedYear}</h2>
                         <Link href="/coordinator-portal" className="btn btn-primary px-6 py-3">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline ml-2">
                                 <path d="M12 5v14M5 12h14" />
                             </svg>
-                            إضافة مركز جديد
+                            {t('add_new_coordinator')}
                         </Link>
                     </div>
 
@@ -645,20 +647,20 @@ export default function PrincipalDashboard() {
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b-2 border-gray-200">
-                                    <th className="text-right p-4 font-bold text-gray-700">المركز</th>
-                                    <th className="text-right p-4 font-bold text-gray-700">المادة</th>
-                                    <th className="text-right p-4 font-bold text-gray-700">الحالة</th>
-                                    <th className="text-right p-4 font-bold text-gray-700">نسبة الإنجاز</th>
-                                    <th className="text-right p-4 font-bold text-gray-700">الأهداف</th>
-                                    <th className="text-right p-4 font-bold text-gray-700">المهام</th>
-                                    <th className="text-right p-4 font-bold text-gray-700">آخر تحديث</th>
-                                    <th className="text-center p-4 font-bold text-gray-700">الإجراءات</th>
+                                    <th className="text-right p-4 font-bold text-gray-700">{t('coordinator_label')}</th>
+                                    <th className="text-right p-4 font-bold text-gray-700">{t('subject_label')}</th>
+                                    <th className="text-right p-4 font-bold text-gray-700">{t('status')}</th>
+                                    <th className="text-right p-4 font-bold text-gray-700">{t('completion_rate')}</th>
+                                    <th className="text-right p-4 font-bold text-gray-700">{t('goals_count')}</th>
+                                    <th className="text-right p-4 font-bold text-gray-700">{t('tasks_count')}</th>
+                                    <th className="text-right p-4 font-bold text-gray-700">{t('last_update')}</th>
+                                    <th className="text-center p-4 font-bold text-gray-700">{t('actions_label')}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredPlans.length === 0 ? (
                                     <tr>
-                                        <td colSpan={8} className="p-8 text-center text-gray-400">لا توجد خطط لهذا العام</td>
+                                        <td colSpan={8} className="p-8 text-center text-gray-400">{t('no_plans_for_year')}</td>
                                     </tr>
                                 ) : (
                                     filteredPlans.map((plan) => {
@@ -704,7 +706,7 @@ export default function PrincipalDashboard() {
                                                             href={`/dashboard/planning/view/${plan.year}?userId=${plan.userId || plan.id.split('_')[1]}`}
                                                             className="btn btn-ghost text-sm px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100"
                                                         >
-                                                            مراجعة
+                                                            {t('review')}
                                                         </Link>
 
                                                         {/* Actions always visible but disabled if not applicable */}
@@ -712,13 +714,13 @@ export default function PrincipalDashboard() {
                                                             className={`btn btn-ghost text-sm px-3 py-1 bg-green-50 text-green-600 hover:bg-green-100 ${plan.status === 'approved' ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                             disabled={plan.status === 'approved'}
                                                         >
-                                                            موافقة
+                                                            {t('approve')}
                                                         </button>
                                                         <button
                                                             className={`btn btn-ghost text-sm px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 ${plan.status === 'rejected' ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                             disabled={plan.status === 'rejected'}
                                                         >
-                                                            رفض
+                                                            {t('reject')}
                                                         </button>
                                                     </div>
                                                 </td>
@@ -737,18 +739,18 @@ export default function PrincipalDashboard() {
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-2xl font-bold flex items-center gap-2 text-amber-700">
                                 <span className="text-3xl">🔔</span>
-                                طلبات تسجيل جديدة ({pendingAuthUsers.length})
+                                {t('new_registration_requests')} ({pendingAuthUsers.length})
                             </h2>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-right">
                                 <thead>
                                     <tr className="border-b-2 border-gray-100">
-                                        <th className="py-4 px-4 font-bold text-gray-600">الاسم</th>
-                                        <th className="py-4 px-4 font-bold text-gray-600">البريد الإلكتروني</th>
-                                        <th className="py-4 px-4 font-bold text-gray-600">التخصص</th>
-                                        <th className="py-4 px-4 font-bold text-gray-600">الهاتف</th>
-                                        <th className="py-4 px-4 font-bold text-gray-600">الإجراءات</th>
+                                        <th className="py-4 px-4 font-bold text-gray-600">{t('name')}</th>
+                                        <th className="py-4 px-4 font-bold text-gray-600">{t('email')}</th>
+                                        <th className="py-4 px-4 font-bold text-gray-600">{t('specialty')}</th>
+                                        <th className="py-4 px-4 font-bold text-gray-600">{t('phone')}</th>
+                                        <th className="py-4 px-4 font-bold text-gray-600">{t('actions_label')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -764,13 +766,13 @@ export default function PrincipalDashboard() {
                                                         onClick={() => handleApproveAuthUser(u.id)}
                                                         className="px-4 py-2 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 transition-colors"
                                                     >
-                                                        اعتماد
+                                                        {t('approve_btn')}
                                                     </button>
                                                     <button
                                                         onClick={() => handleRejectAuthUser(u.id)}
                                                         className="px-4 py-2 bg-red-50 text-red-500 rounded-lg font-bold hover:bg-red-100 transition-colors"
                                                     >
-                                                        رفض
+                                                        {t('reject')}
                                                     </button>
                                                 </div>
                                             </td>
@@ -787,7 +789,7 @@ export default function PrincipalDashboard() {
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-2xl font-bold flex items-center gap-2">
                             <span className="text-blue-600">📝</span>
-                            إسناد مهام للمنسقين
+                            {t('assign_tasks_coordinators')}
                         </h2>
                     </div>
                     <div className="bg-blue-50 p-6 rounded-xl border border-blue-100">
@@ -807,8 +809,8 @@ export default function PrincipalDashboard() {
                                 </svg>
                             </div>
                             <div>
-                                <h3 className="font-bold text-xl">التحليلات والإحصائيات</h3>
-                                <p className="text-gray-600">تقارير تفصيلية عن الأداء</p>
+                                <h3 className="font-bold text-xl">{t('analytics_stats')}</h3>
+                                <p className="text-gray-600">{language === 'ar' ? 'تقارير تفصيلية عن الأداء' : 'דוחות מפורטים על ביצועים'}</p>
                             </div>
                         </div>
                     </Link>
@@ -824,8 +826,8 @@ export default function PrincipalDashboard() {
                                 </svg>
                             </div>
                             <div>
-                                <h3 className="font-bold text-xl">بروتوكولات الجلسات</h3>
-                                <p className="text-gray-600">متابعة الاجتماعات واللقاءات</p>
+                                <h3 className="font-bold text-xl">{t('meeting_protocols')}</h3>
+                                <p className="text-gray-600">{language === 'ar' ? 'متابعة الاجتماعات واللقاءات' : 'מעקב אחר פגישות וישיבות'}</p>
                             </div>
                         </div>
                     </Link>
@@ -841,8 +843,8 @@ export default function PrincipalDashboard() {
                                 </svg>
                             </div>
                             <div>
-                                <h3 className="font-bold text-xl">بوابة المركزين</h3>
-                                <p className="text-gray-600">الوصول لصفحات المركزين</p>
+                                <h3 className="font-bold text-xl">{t('coordinator_portal')}</h3>
+                                <p className="text-gray-600">{language === 'ar' ? 'الوصول لصفحات المركزين' : 'גישה לדפי רכזים'}</p>
                             </div>
                         </div>
                     </Link>
@@ -852,11 +854,11 @@ export default function PrincipalDashboard() {
                     <AIAssistant
                         onClose={() => setShowAI(false)}
                         context={{ plans, stats, monthlyValues, selectedYear }}
-                        pageTitle="مساعد المدير الذكي"
+                        pageTitle={language === 'ar' ? 'مساعد المدير الذكي' : 'עוזר מנהל חכם'}
                         suggestions={[
-                            { label: 'تحليل أداء المركزين', prompt: 'قم بتحليل نسب إنجاز المركزين واقترح من يحتاج لمتابعة أكثر.', icon: '📊' },
-                            { label: 'اقتراح قيم تربوية', prompt: 'اقترح قيم تربوية للأشهر المتبقية بناءً على أهداف المدرسة العامة.', icon: '💡' },
-                            { label: 'ملخص الحالة العامة', prompt: 'لخص الحالة العامة للمدرسة من حيث الخطط والمهام في 3 نقاط.', icon: '📝' }
+                            { label: language === 'ar' ? 'تحليل أداء المركزين' : 'ניתוח ביצועי רכזים', prompt: language === 'ar' ? 'قم بتحليل نسب إنجاز المركزين واقترح من يحتاج لمتابعة أكثر.' : 'נתח את אחוזי ביצוע הרכזים והצע מי זקוק למעקב נוסף.', icon: '📊' },
+                            { label: language === 'ar' ? 'اقتراح قيم تربوية' : 'הצעת ערכים חינוכיים', prompt: language === 'ar' ? 'اقترح قيم تربوية للأشهر المتبقية بناءً على أهداف المدرسة العامة.' : 'הצע ערכים חינוכיים לחודשים הנותרים בהתבסס על מטרות בית הספר הכלליות.', icon: '💡' },
+                            { label: language === 'ar' ? 'ملخص الحالة العامة' : 'סיכום מצב כללי', prompt: language === 'ar' ? 'لخص الحالة العامة للمدرسة من حيث الخطط والمهام في 3 نقاط.' : 'סכם את המצב הכללי של בית הספר מבחינת תוכניות ומשימות ב-3 נקודות.', icon: '📝' }
                         ]}
                     />
                 )}
@@ -868,6 +870,7 @@ export default function PrincipalDashboard() {
 // Sub-component for Task Assignment to keep main component clean
 // Sub-component for Task Assignment to keep main component clean
 function TaskAssignmentForm({ coordinators }: { coordinators: CoordinatorPlan[] }) {
+    const { t, language } = useTranslation();
     const [taskText, setTaskText] = useState('');
     const [selectedCoordinators, setSelectedCoordinators] = useState<string[]>([]);
     const [isSending, setIsSending] = useState(false);
@@ -925,11 +928,11 @@ function TaskAssignmentForm({ coordinators }: { coordinators: CoordinatorPlan[] 
 
             setTaskText('');
             setSelectedCoordinators([]);
-            alert(`✅ تم إرسال المهمة لـ ${selectedCoordinators.length} منسق`);
+            alert(language === 'ar' ? `✅ تم إرسال المهمة لـ ${selectedCoordinators.length} منسق` : `✅ המשימה נשלחה ל-${selectedCoordinators.length} רכזים`);
             setIsDropdownOpen(false);
         } catch (error) {
             console.error(error);
-            alert('❌ حدث خطأ أثناء إرسال المهمة');
+            alert(language === 'ar' ? '❌ حدث خطأ أثناء إرسال المهمة' : '❌ אירעה שגיאה בשליחת המשימה');
         } finally {
             setIsSending(false);
         }
@@ -938,18 +941,18 @@ function TaskAssignmentForm({ coordinators }: { coordinators: CoordinatorPlan[] 
     return (
         <div className="flex flex-col md:flex-row gap-4 items-end">
             <div className="flex-1 w-full">
-                <label className="block text-sm font-bold text-gray-700 mb-2">نص المهمة</label>
+                <label className="block text-sm font-bold text-gray-700 mb-2">{t('task_text')}</label>
                 <input
                     type="text"
                     className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                    placeholder="اكتب المهمة المطلوبة..."
+                    placeholder={t('write_required_task')}
                     value={taskText}
                     onChange={(e) => setTaskText(e.target.value)}
                 />
             </div>
             <div className="w-full md:w-1/3 relative">
                 <label className="block text-sm font-bold text-gray-700 mb-2">
-                    إسناد إلى ({selectedCoordinators.length} محدد)
+                    {t('assign_to')} ({selectedCoordinators.length} {t('selected_count')})
                 </label>
 
                 <button
@@ -958,8 +961,8 @@ function TaskAssignmentForm({ coordinators }: { coordinators: CoordinatorPlan[] 
                 >
                     <span className="text-gray-600 truncate">
                         {selectedCoordinators.length > 0
-                            ? `${selectedCoordinators.length} منسقين تم اختيارهم`
-                            : 'اختر المنسقين...'}
+                            ? `${selectedCoordinators.length} ${t('coordinators_selected')}`
+                            : t('select_coordinators_placeholder')}
                     </span>
                     <svg
                         className={`w-5 h-5 text-gray-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
@@ -982,7 +985,7 @@ function TaskAssignmentForm({ coordinators }: { coordinators: CoordinatorPlan[] 
                                     onChange={(e) => handleSelectAll(e.target.checked)}
                                     className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
                                 />
-                                <span className="font-bold text-blue-800 group-hover:text-blue-900">✓ تحديد الكل</span>
+                                <span className="font-bold text-blue-800 group-hover:text-blue-900">{t('select_all')}</span>
                             </label>
                         </div>
 
@@ -1020,7 +1023,7 @@ function TaskAssignmentForm({ coordinators }: { coordinators: CoordinatorPlan[] 
                                 </label>
                             ))}
                             {users.length === 0 && coordinators.length === 0 && (
-                                <div className="text-center text-gray-400 py-4">لا يوجد منسقين</div>
+                                <div className="text-center text-gray-400 py-4">{t('no_coordinators')}</div>
                             )}
                         </div>
                     </div>
@@ -1031,7 +1034,7 @@ function TaskAssignmentForm({ coordinators }: { coordinators: CoordinatorPlan[] 
                 disabled={isSending || !taskText || selectedCoordinators.length === 0}
                 className={`btn bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-bold shadow-lg shadow-blue-200 transition-all ${isSending || selectedCoordinators.length === 0 ? 'opacity-70 cursor-not-allowed' : 'hover:-translate-y-1'}`}
             >
-                {isSending ? 'جاري الإرسال...' : 'إرسال 📤'}
+                {isSending ? t('sending') : (language === 'ar' ? 'إرسال 📤' : 'שלח 📤')}
             </button>
         </div>
     );
@@ -1039,6 +1042,7 @@ function TaskAssignmentForm({ coordinators }: { coordinators: CoordinatorPlan[] 
 
 // Sub-component for editing/listing users
 function UsersListTable() {
+    const { t, language } = useTranslation();
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingUser, setEditingUser] = useState<any>(null);
@@ -1063,7 +1067,7 @@ function UsersListTable() {
     };
 
     const handleDeleteUser = async (userId: string) => {
-        if (!confirm('هل أنت متأكد من حذف هذا المستخدم؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+        if (!confirm(language === 'ar' ? 'هل أنت متأكد من حذف هذا المستخدم؟ لا يمكن التراجع عن هذا الإجراء.' : 'האם אתה בטוח שברצונך למחוק משתמש זה? לא ניתן לבטל פעולה זו.')) return;
 
         try {
             // Optimistic update
@@ -1072,10 +1076,10 @@ function UsersListTable() {
             // Delete from Firestore
             await deleteDoc(doc(db, 'users', userId));
 
-            alert('تم حذف سجل المستخدم بنجاح');
+            alert(language === 'ar' ? 'تم حذف سجل المستخدم بنجاح' : 'רשומת המשתמש נמחקה בהצלחה');
         } catch (error) {
             console.error("Error deleting user:", error);
-            alert('حدث خطأ أثناء الحذف');
+            alert(language === 'ar' ? 'حدث خطأ أثناء الحذف' : 'אירעה שגיאה במהלך המחיקה');
             fetchUsers(); // Revert
         }
     };
@@ -1095,25 +1099,25 @@ function UsersListTable() {
             });
 
             setEditingUser(null);
-            alert('تم تحديث بيانات المستخدم بنجاح');
+            alert(language === 'ar' ? 'تم تحديث بيانات المستخدم بنجاح' : 'נתוני המשתמש עודכנו בהצלחה');
         } catch (error) {
             console.error("Error updating user:", error);
-            alert('حدث خطأ أثناء التحديث');
+            alert(language === 'ar' ? 'حدث خطأ أثناء التحديث' : 'אירעה שגיאה במהלך העדכון');
             fetchUsers();
         }
     };
 
-    if (loading) return <div className="text-center py-4">جاري تحميل المستخدمين...</div>;
+    if (loading) return <div className="text-center py-4">{t('loading_users')}</div>;
 
     return (
         <div className="overflow-x-auto">
             <table className="w-full text-sm text-left rtl:text-right text-gray-500">
                 <thead className="text-xs text-gray-700 uppercase bg-gray-50">
                     <tr>
-                        <th scope="col" className="px-6 py-3">الاسم</th>
-                        <th scope="col" className="px-6 py-3">البريد الإلكتروني</th>
-                        <th scope="col" className="px-6 py-3">الدور / المادة</th>
-                        <th scope="col" className="px-6 py-3 text-center">الإجراءات</th>
+                        <th scope="col" className="px-6 py-3">{t('name')}</th>
+                        <th scope="col" className="px-6 py-3">{t('email')}</th>
+                        <th scope="col" className="px-6 py-3">{t('subject_role')}</th>
+                        <th scope="col" className="px-6 py-3 text-center">{t('actions_label')}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1137,7 +1141,7 @@ function UsersListTable() {
                                         value={editingUser.subject}
                                         onChange={e => setEditingUser({ ...editingUser, subject: e.target.value })}
                                         className="border p-1 rounded w-full placeholder-gray-300"
-                                        placeholder="المادة..."
+                                        placeholder={language === 'ar' ? 'المادة...' : 'מקצוע...'}
                                     />
                                 ) : (
                                     <span className="bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded">{user.subject || user.role}</span>
@@ -1146,8 +1150,8 @@ function UsersListTable() {
                             <td className="px-6 py-4 flex justify-center gap-2">
                                 {editingUser?.id === user.id ? (
                                     <>
-                                        <button onClick={handleUpdateUser} className="font-medium text-green-600 hover:underline">حفظ</button>
-                                        <button onClick={() => setEditingUser(null)} className="font-medium text-gray-600 hover:underline">إلغاء</button>
+                                        <button onClick={handleUpdateUser} className="font-medium text-green-600 hover:underline">{language === 'ar' ? 'حفظ' : 'שמור'}</button>
+                                        <button onClick={() => setEditingUser(null)} className="font-medium text-gray-600 hover:underline">{t('cancel')}</button>
                                     </>
                                 ) : (
                                     <>
@@ -1155,13 +1159,13 @@ function UsersListTable() {
                                             onClick={() => setEditingUser(user)}
                                             className="font-medium text-blue-600 hover:underline"
                                         >
-                                            تعديل
+                                            {language === 'ar' ? 'تعديل' : 'ערוך'}
                                         </button>
                                         <button
                                             onClick={() => handleDeleteUser(user.id)}
                                             className="font-medium text-red-600 hover:underline"
                                         >
-                                            حذف
+                                            {t('delete')}
                                         </button>
                                     </>
                                 )}
@@ -1170,7 +1174,7 @@ function UsersListTable() {
                     ))}
                     {users.length === 0 && (
                         <tr>
-                            <td colSpan={4} className="text-center py-4">لا يوجد مستخدمين مسجلين</td>
+                            <td colSpan={4} className="text-center py-4">{language === 'ar' ? 'لا يوجد مستخدمين مسجلين' : 'אין משתמשים רשומים'}</td>
                         </tr>
                     )}
                 </tbody>

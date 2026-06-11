@@ -7,11 +7,12 @@ import { SchoolEvent, EventType, CalendarMetadata } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import styles from './Calendar.module.css';
 import AIAssistant from '@/components/AIAssistant';
+import { useTranslation } from '@/contexts/LanguageContext';
 
-const DAYS = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-const MONTHS = [
-    'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+const DAYS_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+const MONTHS_KEYS = [
+    'january', 'february', 'march', 'april', 'may', 'june',
+    'july', 'august', 'september', 'october', 'november', 'december'
 ];
 
 const EVENT_COLORS: Record<EventType, string> = {
@@ -42,6 +43,7 @@ const MAX_VISIBLE_EVENTS = 3;
 
 export default function CalendarClient() {
     const { user } = useAuth();
+    const { t, language } = useTranslation();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [events, setEvents] = useState<SchoolEvent[]>([]);
     const [metadata, setMetadata] = useState<CalendarMetadata>({ id: '', monthValue: '', notes: '' });
@@ -187,7 +189,7 @@ export default function CalendarClient() {
     };
 
     const handleSaveEvent = async () => {
-        if (!formData.title) return alert('الرجاء إدخال العنوان');
+        if (!formData.title) return alert(t('enter_title_alert'));
 
         try {
             const eventData = {
@@ -210,19 +212,19 @@ export default function CalendarClient() {
             // Realtime listener updates events so day view updates automatically.
         } catch (error) {
             console.error('Error saving event:', error);
-            alert('حدث خطأ');
+            alert(t('error_occurred'));
         }
     };
 
     const handleDeleteEvent = async () => {
         if (!editingEvent) return;
-        if (!confirm('هل أنت متأكد من الحذف؟')) return;
+        if (!confirm(t('confirm_delete'))) return;
         try {
             await deleteDoc(doc(db, 'calendarEvents', editingEvent.id));
             setIsEventModalOpen(false);
         } catch (error) {
             console.error('Error deleting:', error);
-            alert('حدث خطأ');
+            alert(t('error_occurred'));
         }
     };
 
@@ -244,9 +246,9 @@ export default function CalendarClient() {
                         <span className="text-xl">✨</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-purple-500 uppercase tracking-wider bg-white/50 px-2 py-1 rounded-lg">قيمة الشهر</span>
+                        <span className="text-xs font-bold text-purple-500 uppercase tracking-wider bg-white/50 px-2 py-1 rounded-lg">{t('month_value')}</span>
                         <span className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-700 to-indigo-700">
-                            {metadata.monthValue || 'لم يتم تحديد القيمة'}
+                            {metadata.monthValue || t('value_not_set')}
                         </span>
                     </div>
                 </div>
@@ -266,7 +268,7 @@ export default function CalendarClient() {
                             onClick={() => setCurrentDate(new Date())}
                             className="px-4 py-1.5 text-sm font-bold text-gray-600 hover:text-primary transition-colors border-x border-gray-200 mx-1"
                         >
-                            اليوم
+                            {t('today')}
                         </button>
                         <button
                             onClick={handleNextMonth}
@@ -279,7 +281,7 @@ export default function CalendarClient() {
                     <div className="relative group">
                         <h2 className="text-2xl font-black text-gray-800 flex items-center gap-3 cursor-pointer select-none">
                             <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary-dark">
-                                {MONTHS[currentDate.getMonth()]}
+                                {t(MONTHS_KEYS[currentDate.getMonth()])}
                             </span>
                             <span className="text-gray-400 font-light text-xl">
                                 {currentDate.getFullYear()}
@@ -297,16 +299,16 @@ export default function CalendarClient() {
                         {/* Month Picker Dropdown */}
                         <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 transform origin-top-right">
                             <div className="grid grid-cols-3 gap-2 mb-4">
-                                {MONTHS.map((month, idx) => (
+                                {MONTHS_KEYS.map((monthKey, idx) => (
                                     <button
-                                        key={month}
+                                        key={monthKey}
                                         onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), idx, 1))}
                                         className={`p-2 text-sm rounded-lg transition-colors ${currentDate.getMonth() === idx
                                             ? 'bg-primary text-white font-bold'
                                             : 'hover:bg-gray-50 text-gray-700'
                                             }`}
                                     >
-                                        {month}
+                                        {t(monthKey)}
                                     </button>
                                 ))}
                             </div>
@@ -335,18 +337,18 @@ export default function CalendarClient() {
                     onClick={() => setShowAI(true)}
                     className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold shadow-lg hover:scale-105 transition-all flex items-center gap-2 animate-pulse"
                 >
-                    <span>✨</span> مساعد التقويم الذكي
+                    <span>✨</span> {t('calendar_assistant')}
                 </button>
             </div>
 
             {showAI && (
                 <AIAssistant
                     onClose={() => setShowAI(false)}
-                    context={{ events, metadata, currentMonth: MONTHS[currentDate.getMonth()] }}
-                    pageTitle="مساعد التقويم المدرسي"
+                    context={{ events, metadata, currentMonth: t(MONTHS_KEYS[currentDate.getMonth()]) }}
+                    pageTitle={t('calendar_assistant')}
                     suggestions={[
-                        { label: 'تحليل الفعاليات', prompt: 'راجع فعاليات هذا الشهر وأخبرني إذا كان هناك ضغط في الامتحانات أو الاجتماعات.', icon: '🔍' },
-                        { label: 'اقتراح فعاليات', prompt: 'بناءً على قيمة الشهر، اقترح فعاليتين تربويتين لتعزيزها.', icon: '💡' }
+                        { label: t('analyze_events'), prompt: language === 'ar' ? 'راجع فعاليات هذا الشهر وأخبرني إذا كان هناك ضغط في الامتحانات أو الاجتماعات.' : 'עבור על אירועי החודש ועדכן אם יש עומס של מבחנים או ישיבות.', icon: '🔍' },
+                        { label: t('suggest_events'), prompt: language === 'ar' ? 'بناءً على قيمة الشهر، اقترح فعاليتين تربويتين لتعزيزها.' : 'בהתבסס על ערך החודש, הצע שתי פעילויות חינוכיות לחיזוקו.', icon: '💡' }
                     ]}
                 />
             )
@@ -356,8 +358,8 @@ export default function CalendarClient() {
             <div className={styles.calendarContainer}>
                 {/* Headers */}
                 <div className={styles.header}>
-                    {DAYS.map(day => (
-                        <div key={day} className={styles.headerDay}>{day}</div>
+                    {DAYS_KEYS.map(dayKey => (
+                        <div key={dayKey} className={styles.headerDay}>{t(dayKey)}</div>
                     ))}
                 </div>
 
@@ -375,7 +377,7 @@ export default function CalendarClient() {
                             >
                                 <div className={styles.dayHeader}>
                                     <span className={`${styles.dayNumber} ${dayObj.date === todayStr ? styles.today : ''}`}>
-                                        {dayObj.day === 1 ? `${dayObj.day} ${MONTHS[parseInt(dayObj.date.split('-')[1]) - 1]}` : dayObj.day}
+                                        {dayObj.day === 1 ? `${dayObj.day} ${t(MONTHS_KEYS[parseInt(dayObj.date.split('-')[1]) - 1])}` : dayObj.day}
                                     </span>
                                 </div>
 
@@ -396,7 +398,7 @@ export default function CalendarClient() {
                                             className={styles.moreEvents}
                                             onClick={(e) => handleMoreClick(e, dayObj.events, dayObj.date)}
                                         >
-                                            {overflowCount}+ المزيد
+                                            {overflowCount}+ {t('more_events')}
                                         </div>
                                     )}
                                 </div>
@@ -413,7 +415,7 @@ export default function CalendarClient() {
                         <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
                             <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
                                 <h3 className="font-medium text-gray-800">
-                                    {editingEvent ? 'تعديل حدث' : 'حدث جديد'}
+                                    {editingEvent ? t('edit_event') : t('new_event')}
                                 </h3>
                                 <button onClick={() => setIsEventModalOpen(false)} className="text-gray-400 hover:text-gray-600">✕</button>
                             </div>
@@ -425,13 +427,13 @@ export default function CalendarClient() {
                                         className="w-full text-lg font-medium border-b-2 border-gray-200 focus:border-blue-500 outline-none pb-2 transition-colors placeholder-gray-400"
                                         value={formData.title}
                                         onChange={e => setFormData({ ...formData, title: e.target.value })}
-                                        placeholder="أضف عنواناً"
+                                        placeholder={t('add_title_placeholder')}
                                         autoFocus
                                     />
                                 </div>
 
                                 <div className="flex gap-2 flex-wrap">
-                                    {Object.entries(EVENT_LABELS).map(([key, label]) => (
+                                    {Object.keys(EVENT_COLORS).map((key) => (
                                         <button
                                             key={key}
                                             type="button"
@@ -444,7 +446,7 @@ export default function CalendarClient() {
                                                 backgroundColor: formData.type === key ? EVENT_COLORS[key as EventType] : undefined
                                             }}
                                         >
-                                            {label}
+                                            {t(key)}
                                         </button>
                                     ))}
                                 </div>
@@ -457,7 +459,7 @@ export default function CalendarClient() {
                                 <div>
                                     <textarea
                                         className="w-full p-3 bg-gray-50 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-500 min-h-[100px] resize-none"
-                                        placeholder="أضف وصفاً أو ملاحظات..."
+                                        placeholder={t('add_desc_placeholder')}
                                         value={formData.description}
                                         onChange={e => setFormData({ ...formData, description: e.target.value })}
                                     />
@@ -470,20 +472,20 @@ export default function CalendarClient() {
                                         onClick={handleDeleteEvent}
                                         className="px-4 py-2 text-red-600 text-sm font-medium hover:bg-red-50 rounded mr-auto"
                                     >
-                                        حذف
+                                        {t('delete')}
                                     </button>
                                 )}
                                 <button
                                     onClick={() => setIsEventModalOpen(false)}
                                     className="px-4 py-2 text-gray-600 text-sm font-medium hover:bg-gray-100 rounded"
                                 >
-                                    إلغاء
+                                    {t('cancel')}
                                 </button>
                                 <button
                                     onClick={handleSaveEvent}
                                     className="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 shadow-sm"
                                 >
-                                    حفظ
+                                    {t('save')}
                                 </button>
                             </div>
                         </div>
@@ -498,7 +500,7 @@ export default function CalendarClient() {
                         <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[80vh]">
                             <div className="p-4 border-b flex justify-between items-center bg-gray-50">
                                 <div className="flex flex-col">
-                                    <span className="text-xs text-gray-500 font-medium">{DAYS[new Date(selectedDate).getDay()]}</span>
+                                    <span className="text-xs text-gray-500 font-medium">{t(DAYS_KEYS[new Date(selectedDate).getDay()])}</span>
                                     <span className="text-xl font-bold text-gray-800">{new Date(selectedDate).getDate()}</span>
                                 </div>
                                 <div className="flex gap-2">
@@ -510,7 +512,7 @@ export default function CalendarClient() {
                                             // Optional: keep day view open or close it? usually creating event closes popup.
                                         }}
                                         className="p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100"
-                                        title="إضافة حدث"
+                                        title={t('new_event')}
                                     >
                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                                     </button>
@@ -520,7 +522,7 @@ export default function CalendarClient() {
 
                             <div className="overflow-y-auto p-2 flex-1">
                                 {dayViewEvents.length === 0 ? (
-                                    <p className="text-center text-gray-400 py-8 text-sm">لا توجد فعاليات</p>
+                                    <p className="text-center text-gray-400 py-8 text-sm">{t('no_events')}</p>
                                 ) : (
                                     dayViewEvents.map(event => (
                                         <div
@@ -534,7 +536,7 @@ export default function CalendarClient() {
                                         >
                                             <div className="font-medium text-gray-800 text-sm mb-1">{event.title}</div>
                                             <div className="text-xs text-gray-500 flex gap-2">
-                                                <span style={{ color: event.color }}>{EVENT_LABELS[event.type]}</span>
+                                                <span style={{ color: event.color }}>{t(event.type)}</span>
                                                 {event.description && <span className="truncate max-w-[150px]">- {event.description}</span>}
                                             </div>
                                         </div>

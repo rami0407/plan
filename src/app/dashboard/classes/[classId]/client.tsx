@@ -7,13 +7,24 @@ import * as XLSX from 'xlsx';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import Link from 'next/link';
-import { STUDENT_COLUMNS, ColumnDefinition } from '@/lib/studentColumns';
+import { STUDENT_COLUMNS, ColumnDefinition, getLocalizedColumns } from '@/lib/studentColumns';
 import SmartMapper from '@/components/ExcelImport/SmartMapper';
 import AdvancedAnalyticsV2 from '@/components/Analytics/AdvancedAnalyticsV2';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 // ... imports
 
 registerAllModules();
+
+const getQuarterPeriod = (quarterId: string, language: string) => {
+    switch (quarterId) {
+        case 'q1': return language === 'ar' ? 'سبتمبر - نوفمبر' : 'ספטמבר - נובמבר';
+        case 'q2': return language === 'ar' ? 'ديسمبر - فبراير' : 'דצמבר - פברואר';
+        case 'q3': return language === 'ar' ? 'مارس - مايو' : 'מרץ - מאי';
+        case 'q4': return language === 'ar' ? 'يونيو - أغسطس' : 'יוני - אוגוסט';
+        default: return '';
+    }
+};
 
 interface ClassEditorClientProps {
     classId: string;
@@ -48,6 +59,9 @@ const QUARTERS = [
 ];
 
 export default function ClassEditorClient({ classId }: ClassEditorClientProps) {
+    const { t, language } = useTranslation();
+    const localizedColumns = getLocalizedColumns(language);
+    
     const [selectedQuarter, setSelectedQuarter] = useState<string>('q1');
     const [data, setData] = useState<any[]>([]); // Data is now an array of objects
     const [fileName, setFileName] = useState<string>('');
@@ -112,10 +126,10 @@ export default function ClassEditorClient({ classId }: ClassEditorClientProps) {
                 quarter: selectedQuarter,
                 year: selectedYear
             });
-            alert('✅ تم حفظ البيانات بنجاح!');
+            alert(language === 'ar' ? '✅ تم حفظ البيانات بنجاح!' : '✅ הנתונים נשמרו בהצלחה!');
         } catch (error) {
             console.error('Error saving:', error);
-            alert('❌ فشل الحفظ!');
+            alert(language === 'ar' ? '❌ فشل الحفظ!' : '❌ השמירה נכשלה!');
         }
     };
 
@@ -143,12 +157,12 @@ export default function ClassEditorClient({ classId }: ClassEditorClientProps) {
         try {
             // Create a row with empty strings for each key
             const templateRow: any = {};
-            STUDENT_COLUMNS.forEach(col => templateRow[col.label] = ''); // Use Label as header for user friendliness
+            localizedColumns.forEach(col => templateRow[col.label] = ''); // Use Label as header for user friendliness
 
             const ws = XLSX.utils.json_to_sheet([templateRow]);
 
             // Add Data Validations for Dropdowns
-            STUDENT_COLUMNS.forEach((col, idx) => {
+            localizedColumns.forEach((col, idx) => {
                 if (col.type === 'dropdown' && col.options) {
                     const colLetter = XLSX.utils.encode_col(idx);
                     // This is a basic way to add validation, complex in raw XLSX but sheetjs specific logic might be limited in free version.
@@ -171,7 +185,10 @@ export default function ClassEditorClient({ classId }: ClassEditorClientProps) {
 
         const prevQuarter = QUARTERS[currentIndex - 1];
 
-        if (!confirm(`هل أنت متأكد من استيراد البيانات من ${prevQuarter.name}؟ سيتم استبدال أي بيانات موجودة حالياً.`)) {
+        if (!confirm(language === 'ar' 
+            ? `هل أنت متأكد من استيراد البيانات من ${prevQuarter.name}؟ سيتم استبدال أي بيانات موجودة حالياً.` 
+            : `האם אתה בטוח שברצונך לייבא נתונים מ-${prevQuarter.name}? נתונים קיימים יידרסו.`
+        )) {
             return;
         }
 
@@ -185,16 +202,16 @@ export default function ClassEditorClient({ classId }: ClassEditorClientProps) {
                 if (docData.dataJson) {
                     const parsedData = JSON.parse(docData.dataJson);
                     setData(parsedData);
-                    alert(`تم استيراد البيانات من ${prevQuarter.name} بنجاح!`);
+                    alert(language === 'ar' ? `تم استيراد البيانات من ${prevQuarter.name} بنجاح!` : `הנתונים יובאו מ-${prevQuarter.name} בהצלחה!`);
                 } else {
-                    alert(`لا توجد بيانات محفوظة في ${prevQuarter.name}.`);
+                    alert(language === 'ar' ? `لا توجد بيانات محفوظة في ${prevQuarter.name}.` : `אין נתונים שמורים ב-${prevQuarter.name}.`);
                 }
             } else {
-                alert(`لم يتم العثور على بيانات في ${prevQuarter.name}.`);
+                alert(language === 'ar' ? `لم يتم العثور على بيانات في ${prevQuarter.name}.` : `לא נמצאו נתונים ב-${prevQuarter.name}.`);
             }
         } catch (error) {
             console.error('Error importing previous quarter:', error);
-            alert('حدث خطأ أثناء الاستيراد.');
+            alert(language === 'ar' ? 'حدث خطأ أثناء الاستيراد.' : 'אירעה שגיאה במהלך הייבוא.');
         } finally {
             setLoading(false);
         }
@@ -205,7 +222,7 @@ export default function ClassEditorClient({ classId }: ClassEditorClientProps) {
             // Map data back to labels for export
             const exportData = data.map(row => {
                 const newRow: any = {};
-                STUDENT_COLUMNS.forEach(col => {
+                localizedColumns.forEach(col => {
                     newRow[col.label] = row[col.key];
                 });
                 return newRow;
@@ -217,7 +234,7 @@ export default function ClassEditorClient({ classId }: ClassEditorClientProps) {
             XLSX.writeFile(wb, fileName || `${className}-${selectedQuarter}.xlsx`);
         } catch (error) {
             console.error('Export error:', error);
-            alert('فشل التصدير!');
+            alert(language === 'ar' ? 'فشل التصدير!' : 'הייצוא נכשל!');
         }
     };
 
@@ -240,22 +257,22 @@ export default function ClassEditorClient({ classId }: ClassEditorClientProps) {
                         <div>
                             <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
                                 <span>📊</span>
-                                {className}
+                                {t(className)}
                             </h1>
-                            <p className="text-gray-600 mt-1">العام الدراسي {selectedYear}</p>
+                            <p className="text-gray-600 mt-1">{t('school_year')} {selectedYear}</p>
                         </div>
                         <Link
                             href="/dashboard/classes"
                             className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors font-medium"
                         >
-                            ← العودة
+                            ← {t('back')}
                         </Link>
                     </div>
                 </div>
 
                 {/* Quarters Selection */}
                 <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-                    <h2 className="text-xl font-bold text-gray-800 mb-4">المراحل الأربعة:</h2>
+                    <h2 className="text-xl font-bold text-gray-800 mb-4">{language === 'ar' ? 'المراحل الأربعة:' : 'ארבעת הרבעונים:'}</h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {QUARTERS.map(q => (
                             <button
@@ -268,9 +285,9 @@ export default function ClassEditorClient({ classId }: ClassEditorClientProps) {
                             >
                                 <div className="text-center">
                                     <div className="text-3xl font-black mb-1">{q.id.toUpperCase()}</div>
-                                    <div className="font-bold text-sm mb-1">{q.name}</div>
+                                    <div className="font-bold text-sm mb-1">{t('quarter_' + q.id.substring(1))}</div>
                                     <div className={`text-xs ${selectedQuarter === q.id ? 'text-white/80' : 'text-gray-500'}`}>
-                                        {q.period}
+                                        {getQuarterPeriod(q.id, language)}
                                     </div>
                                 </div>
                             </button>
@@ -293,14 +310,14 @@ export default function ClassEditorClient({ classId }: ClassEditorClientProps) {
                             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all flex items-center gap-2"
                         >
                             <span>📁</span>
-                            استيراد ملف Excel
+                            {t('import_excel_file')}
                         </button>
                         <button
                             onClick={handleDownloadTemplate}
                             className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all flex items-center gap-2"
                         >
                             <span>📋</span>
-                            تحميل قالب جاهز
+                            {t('download_ready_template')}
                         </button>
 
                         {/* Import from Previous Quarter Button */}
@@ -310,7 +327,7 @@ export default function ClassEditorClient({ classId }: ClassEditorClientProps) {
                                 className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold transition-all flex items-center gap-2"
                             >
                                 <span>⏮️</span>
-                                نسخ من المرحلة السابقة
+                                {t('copy_prev_quarter')}
                             </button>
                         )}
 
@@ -319,14 +336,14 @@ export default function ClassEditorClient({ classId }: ClassEditorClientProps) {
                             className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all flex items-center gap-2"
                         >
                             <span>📥</span>
-                            تصدير Excel
+                            {t('export_excel')}
                         </button>
                         <button
                             onClick={saveData}
                             className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold transition-all flex items-center gap-2"
                         >
                             <span>💾</span>
-                            حفظ البيانات
+                            {t('save_changes')}
                         </button>
                         {fileName && (
                             <div className="flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-lg border border-blue-200">
@@ -341,7 +358,7 @@ export default function ClassEditorClient({ classId }: ClassEditorClientProps) {
                 <div className="bg-white rounded-2xl shadow-lg p-6">
                     <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                         <span>📝</span>
-                        جدول التعبئة - {QUARTERS.find(q => q.id === selectedQuarter)?.name}
+                        {language === 'ar' ? 'جدول التعبئة' : 'טבלת מילוי'} - {t('quarter_' + selectedQuarter.substring(1))}
                     </h3>
 
                     <div
@@ -351,19 +368,19 @@ export default function ClassEditorClient({ classId }: ClassEditorClientProps) {
                         {loading ? (
                             <div className="p-12 text-center">
                                 <div className="text-4xl mb-2">⏳</div>
-                                <p className="text-gray-600">جاري التحميل...</p>
+                                <p className="text-gray-600">{language === 'ar' ? 'جاري التحميل...' : 'טוען...'}</p>
                             </div>
                         ) : (
                             <HotTable
                                 ref={hotTableRef}
                                 data={data}
-                                columns={STUDENT_COLUMNS.map(col => ({
+                                columns={localizedColumns.map(col => ({
                                     data: col.key,
                                     type: col.type,
                                     source: col.options,
                                     width: col.width
                                 }))}
-                                colHeaders={STUDENT_COLUMNS.map(col => col.label)}
+                                colHeaders={localizedColumns.map(col => col.label)}
                                 rowHeaders={true}
                                 width="100%"
                                 height="600"
@@ -383,11 +400,11 @@ export default function ClassEditorClient({ classId }: ClassEditorClientProps) {
                     </div>
 
                     <div className="mt-4 text-sm text-gray-600 bg-blue-50 p-4 rounded-lg border border-blue-200">
-                        <p className="font-medium mb-2">💡 نصائح الاستخدام:</p>
+                        <p className="font-medium mb-2">{t('use_tips')}</p>
                         <ul className="list-disc list-inside space-y-1">
-                            <li>استخدم القوائم المنسدلة لتعبئة البيانات بدقة</li>
-                            <li>يمكنك تحميل "القالب الجاهز"، تعبئته، ثم إعادة استيراده</li>
-                            <li>النظام سيساعدك في ربط الأعمدة إذا اختلف ترتيبها</li>
+                            <li>{t('tip_dropdowns')}</li>
+                            <li>{t('tip_template')}</li>
+                            <li>{t('tip_mapping')}</li>
                         </ul>
                     </div>
                 </div>
@@ -422,6 +439,7 @@ export default function ClassEditorClient({ classId }: ClassEditorClientProps) {
 
 // Quarter Comparison Component
 function QuarterComparison({ classId, selectedYear, currentQuarter }: { classId: string; selectedYear: number; currentQuarter: string }) {
+    const { t, language } = useTranslation();
     const [quarterlyData, setQuarterlyData] = useState<Record<string, any>>({});
     const [loading, setLoading] = useState(true);
 
@@ -454,7 +472,7 @@ function QuarterComparison({ classId, selectedYear, currentQuarter }: { classId:
     if (loading) {
         return (
             <div className="bg-purple-50 rounded-xl p-6 border-2 border-purple-200 mt-6">
-                <div className="text-center text-gray-600">⏳ جاري تحميل مقارنة الأرباع...</div>
+                <div className="text-center text-gray-600">{t('loading_quarters_comparison')}</div>
             </div>
         );
     }
@@ -467,18 +485,18 @@ function QuarterComparison({ classId, selectedYear, currentQuarter }: { classId:
         <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-6 border-2 border-purple-200 mt-6">
             <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <span>📈</span>
-                مقارنة الأداء بين الأرباع
+                {t('compare_performance_quarters')}
             </h4>
 
             <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                     <thead className="bg-gradient-to-r from-purple-100 to-blue-100">
                         <tr>
-                            <th className="p-3 text-right font-bold">الربع</th>
-                            <th className="p-3 text-center font-bold">عدد الصفوف</th>
-                            <th className="p-3 text-center font-bold">عدد الأعمدة</th>
-                            <th className="p-3 text-center font-bold">الخلايا المملوءة</th>
-                            <th className="p-3 text-center font-bold">آخر تحديث</th>
+                            <th className="p-3 text-right font-bold">{t('quarter_col')}</th>
+                            <th className="p-3 text-center font-bold">{t('rows_count_col')}</th>
+                            <th className="p-3 text-center font-bold">{t('cols_count_col')}</th>
+                            <th className="p-3 text-center font-bold">{t('filled_cells_col')}</th>
+                            <th className="p-3 text-center font-bold">{t('last_update')}</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y">
@@ -487,7 +505,7 @@ function QuarterComparison({ classId, selectedYear, currentQuarter }: { classId:
                             if (!qData) return (
                                 <tr key={q}>
                                     <td className="p-3 font-medium">{q.toUpperCase()}</td>
-                                    <td colSpan={4} className="p-3 text-center text-gray-400">لا توجد بيانات</td>
+                                    <td colSpan={4} className="p-3 text-center text-gray-400">{t('no_data')}</td>
                                 </tr>
                             );
                             // Parse JSON data
@@ -500,7 +518,7 @@ function QuarterComparison({ classId, selectedYear, currentQuarter }: { classId:
                                     <td className="p-3 text-center">{parsedData[0]?.length || 0}</td>
                                     <td className="p-3 text-center">{filled}</td>
                                     <td className="p-3 text-center text-xs">
-                                        {qData.lastUpdated ? new Date(qData.lastUpdated).toLocaleDateString('ar-EG') : '-'}
+                                        {qData.lastUpdated ? new Date(qData.lastUpdated).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'he-IL') : '-'}
                                     </td>
                                 </tr>
                             );

@@ -12,13 +12,13 @@ import { exportPlanToWord } from '@/lib/wordExport';
 
 export default function ReviewPlanClient({ year }: { year: string }) {
     const router = useRouter();
-    const { t } = useTranslation();
+    const { t, language } = useTranslation();
     const searchParams = useSearchParams();
     const userId = searchParams.get('userId');
 
     // Safety check
     if (!userId) {
-        return <div className="p-8 text-center text-red-500 font-bold">خطأ: لم يتم تحديد المستخدم المطلوب (userId مفقود).</div>;
+        return <div className="p-8 text-center text-red-500 font-bold">{language === 'ar' ? 'خطأ: لم يتم تحديد المستخدم المطلوب (userId مفقود).' : 'שגיאה: לא נבחר משתמש (userId חסר).'}</div>;
     }
 
     const [loading, setLoading] = useState(true);
@@ -84,7 +84,7 @@ export default function ReviewPlanClient({ year }: { year: string }) {
 
     // Actions
     const handleApprove = async () => {
-        if (!confirm('هل أنت متأكد من اعتماد هذه الخطة؟')) return;
+        if (!confirm(language === 'ar' ? 'هل أنت متأكد من اعتماد هذه الخطة؟' : 'האם אתה בטוח שברצונך לאשר תכנית זו?')) return;
         setActionLoading(true);
         try {
             const planId = `${year}_${userId}`;
@@ -96,27 +96,29 @@ export default function ReviewPlanClient({ year }: { year: string }) {
             // Notify Coordinator
             await createNotification({
                 type: 'SYSTEM',
-                senderName: 'المدير',
+                senderName: language === 'ar' ? 'المدير' : 'מנהל',
                 senderRole: 'principal',
-                title: 'تم اعتماد الخطة السنوية ✅',
-                message: `تمت مراجعة واعتماد خطة العمل السنوية للعام ${year} بنجاح.`,
+                title: language === 'ar' ? 'تم اعتماد الخطة السنوية ✅' : 'תכנית העבודה השנתית אושרה ✅',
+                message: language === 'ar' 
+                    ? `تمت مراجعة واعتماد خطة العمل السنوية للعام ${year} بنجاح.` 
+                    : `תכנית העבודה השנתית לשנת ${year} נבדקה ואושרה בהצלחה.`,
                 recipientId: userId,
                 link: `/dashboard/planning/edit/${year}`, // Link back to their edit page
                 status: 'approved'
             });
 
-            alert('✅ تم اعتماد الخطة بنجاح!');
+            alert(language === 'ar' ? '✅ تم اعتماد الخطة بنجاح!' : '✅ התכנית אושרה בהצלחה!');
             router.push('/dashboard/principal');
         } catch (error) {
             console.error(error);
-            alert('حدث خطأ أثناء الاعتماد');
+            alert(language === 'ar' ? 'حدث خطأ أثناء الاعتماد' : 'אירעה שגיאה במהלך האישור');
         } finally {
             setActionLoading(false);
         }
     };
 
     const handleRequestChanges = async () => {
-        if (!feedback.trim()) return alert('الرجاء كتابة ملاحظات التعديل');
+        if (!feedback.trim()) return alert(language === 'ar' ? 'الرجاء كتابة ملاحظات التعديل' : 'נא לכתוב הערות לתיקון');
         setActionLoading(true);
         try {
             const planId = `${year}_${userId}`;
@@ -129,30 +131,30 @@ export default function ReviewPlanClient({ year }: { year: string }) {
             // Notify Coordinator
             await createNotification({
                 type: 'FEEDBACK',
-                senderName: 'المدير',
+                senderName: language === 'ar' ? 'المدير' : 'מנהל',
                 senderRole: 'principal',
-                title: 'مطلوب تعديلات على الخطة ⚠️',
-                message: `المدير طلب تعديلات: ${feedback}`,
+                title: language === 'ar' ? 'مطلوب تعديلات على الخطة ⚠️' : 'נדרשים תיקונים בתכנית ⚠️',
+                message: language === 'ar' ? `المدير طلب تعديلات: ${feedback}` : `המנהל ביקש תיקונים: ${feedback}`,
                 recipientId: userId,
                 link: `/dashboard/planning/edit/${year}`,
                 status: 'changes_requested',
                 feedback: feedback
             });
 
-            alert('✅ تم إرسال الملاحظات للمركز');
+            alert(language === 'ar' ? '✅ تم إرسال الملاحظات للمركز' : '✅ ההערות נשלחו לרכז בהצלחה');
             setShowFeedbackModal(false);
             router.push('/dashboard/principal');
         } catch (error) {
             console.error(error);
-            alert('حدث خطأ');
+            alert(language === 'ar' ? 'حدث خطأ' : 'אירעה שגיאה');
         } finally {
             setActionLoading(false);
         }
     };
 
-    if (loading) return <div className="p-10 text-center">جاري تحميل الخطة...</div>;
+    if (loading) return <div className="p-10 text-center">{t('loading_plan')}</div>;
 
-    if (!planData) return <div className="p-10 text-center text-gray-500">لم يتم العثور على خطة لهذا المركز.</div>;
+    if (!planData) return <div className="p-10 text-center text-gray-500">{t('plan_not_found')}</div>;
 
     return (
         <div className="animate-fade-in pb-20 bg-gray-50 min-h-screen">
@@ -161,14 +163,14 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                 <div className="container mx-auto flex justify-between items-center">
                     <div className="flex items-center gap-4">
                         <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-700 font-bold">
-                            &larr; عودة
+                            &larr; {t('back')}
                         </button>
                         <div>
-                            <h2 className="font-bold text-lg">مراجعة خطة: {profile.name}</h2>
+                            <h2 className="font-bold text-lg">{t('review_plan')} {profile.name}</h2>
                             <span className={`text-xs px-2 py-1 rounded-full ${planData.status === 'approved' ? 'bg-green-100 text-green-700' :
                                 planData.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100'
                                 }`}>
-                                {planData.status === 'approved' ? 'معتمدة' : planData.status === 'pending' ? 'بانتظار المراجعة' : planData.status}
+                                {planData.status === 'approved' ? t('approved_status') : planData.status === 'pending' ? t('pending_status') : planData.status === 'changes_requested' ? t('changes_requested_status') : t('draft_status')}
                             </span>
                         </div>
                     </div>
@@ -179,14 +181,14 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                             className="btn bg-amber-500 hover:bg-amber-600 text-white px-6 py-2 rounded-lg font-bold shadow-md"
                             disabled={actionLoading}
                         >
-                            ⚠️ طلب تعديلات
+                            ⚠️ {t('request_changes')}
                         </button>
                         <button
                             onClick={handleApprove}
                             className="btn bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-bold shadow-md flex items-center gap-2"
                             disabled={actionLoading}
                         >
-                            {actionLoading ? 'جاري التنفيذ...' : '✅ اعتماد الخطة'}
+                            {actionLoading ? (language === 'ar' ? 'جاري التنفيذ...' : 'מבצע...') : `✅ ${t('approve_plan')}`}
                         </button>
                         <button
                             onClick={() => setShowAI(true)}
@@ -198,13 +200,13 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                             onClick={() => exportPlanToWord(planData, year)}
                             className="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-md flex items-center gap-2"
                         >
-                            💾 تنزيل Word
+                            💾 {t('download_word')}
                         </button>
                         <button
                             onClick={() => window.print()}
                             className="btn btn-ghost border-2 border-primary text-gray-700 hover:bg-primary hover:text-white px-4 py-2 rounded-lg font-bold"
                         >
-                            🖨️ طباعة
+                            🖨️ {t('print')}
                         </button>
                     </div>
                 </div>
@@ -215,15 +217,15 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                 {/* 1. Profile Section (Read Only) */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-6">
                     <h3 className="text-xl font-black mb-4 flex items-center gap-2 text-primary">
-                        👤 معلومات المركز
+                        👤 {t('coordinator_info')}
                     </h3>
                     <div className="grid grid-cols-2 gap-6">
                         <div>
-                            <span className="block text-sm text-gray-500 mb-1">الاسم</span>
+                            <span className="block text-sm text-gray-500 mb-1">{t('name')}</span>
                             <div className="p-3 bg-gray-50 rounded-lg text-lg font-bold border border-gray-100">{profile.name}</div>
                         </div>
                         <div>
-                            <span className="block text-sm text-gray-500 mb-1">المادة</span>
+                            <span className="block text-sm text-gray-500 mb-1">{t('subject_label')}</span>
                             <div className="p-3 bg-gray-50 rounded-lg text-lg font-bold border border-gray-100">{profile.subject}</div>
                         </div>
                     </div>
@@ -232,16 +234,16 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                 {/* 2. Teaching Staff (Read Only) */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-6">
                     <h3 className="text-xl font-black mb-4 flex items-center gap-2 text-primary">
-                        🧑‍🏫 طاقم التدريس
+                        🧑‍🏫 {t('teaching_staff')}
                     </h3>
                     <div className="overflow-x-auto">
                         <table className="w-full border-collapse">
                             <thead>
                                 <tr className="bg-gray-50 border-b border-gray-100">
-                                    <th className="p-3 text-right text-gray-600">الاسم</th>
-                                    <th className="p-3 text-right text-gray-600">الإيميل</th>
-                                    <th className="p-3 text-right text-gray-600">الهاتف</th>
-                                    <th className="p-3 text-right text-gray-600">الصفوف</th>
+                                    <th className="p-3 text-right text-gray-600">{t('name')}</th>
+                                    <th className="p-3 text-right text-gray-600">{t('email')}</th>
+                                    <th className="p-3 text-right text-gray-600">{t('phone')}</th>
+                                    <th className="p-3 text-right text-gray-600">{t('classes')}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -253,7 +255,7 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                                         <td className="p-3">{staff.classes}</td>
                                     </tr>
                                 ))}
-                                {teachingStaff.length === 0 && <tr><td colSpan={4} className="p-4 text-center text-gray-400">لا يوجد معلمين</td></tr>}
+                                {teachingStaff.length === 0 && <tr><td colSpan={4} className="p-4 text-center text-gray-400">{language === 'ar' ? 'لا يوجد معلمين' : 'אין מורים'}</td></tr>}
                             </tbody>
                         </table>
                     </div>
@@ -262,20 +264,20 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                 {/* 3. School Profile Table */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-6">
                     <h3 className="text-xl font-black mb-4 flex items-center gap-2 text-primary">
-                        📊 البروفايل المدرسي
+                        📊 {t('school_profile')}
                     </h3>
                     <div className="overflow-x-auto">
                         <table className="w-full border-collapse text-sm">
                             <thead>
                                 <tr className="bg-gray-50 border-b border-gray-100">
-                                    <th className="p-2 border">الصف</th>
-                                    <th className="p-2 border">المعلم</th>
-                                    <th className="p-2 border">الطلاب</th>
-                                    <th className="p-2 border">س. تعليمية</th>
-                                    <th className="p-2 border">س. فردية</th>
-                                    <th className="p-2 border">متميزون</th>
-                                    <th className="p-2 border">متعثرون</th>
-                                    <th className="p-2 border">ملاحظات</th>
+                                    <th className="p-2 border">{t('grade')}</th>
+                                    <th className="p-2 border">{t('teacher')}</th>
+                                    <th className="p-2 border">{t('students')}</th>
+                                    <th className="p-2 border">{t('teaching_hours')}</th>
+                                    <th className="p-2 border">{t('individual_hours')}</th>
+                                    <th className="p-2 border">{t('excellent_students')}</th>
+                                    <th className="p-2 border">{t('struggling_students')}</th>
+                                    <th className="p-2 border">{t('notes')}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -300,17 +302,17 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                 {bookList.filter(row => row.layer || row.bookName || row.publisher || row.author || row.year).length > 0 && (
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-6">
                         <h3 className="text-xl font-black mb-4 flex items-center gap-2 text-primary">
-                            📚 قائمة الكتب الدراسية (Book List)
+                            📚 {t('book_list')}
                         </h3>
                         <div className="overflow-x-auto">
                             <table className="w-full border-collapse text-sm text-right">
                                 <thead>
                                     <tr className="bg-gray-50 border-b border-gray-100">
-                                        <th className="p-3 border">الصف/الطبقة</th>
-                                        <th className="p-3 border">اسم الكتاب</th>
-                                        <th className="p-3 border">الناشر</th>
-                                        <th className="p-3 border">المؤلف</th>
-                                        <th className="p-3 border text-center">السنة</th>
+                                        <th className="p-3 border">{t('grade_level')}</th>
+                                        <th className="p-3 border">{t('book_name')}</th>
+                                        <th className="p-3 border">{t('publisher')}</th>
+                                        <th className="p-3 border">{t('author')}</th>
+                                        <th className="p-3 border text-center">{t('year')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -333,20 +335,20 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                 {integrationPlans.length > 0 && (
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-6">
                         <h3 className="text-xl font-black mb-4 flex items-center gap-2 text-primary">
-                            📑 خطط الدمج الفردية
+                            📑 {language === 'ar' ? 'خطط الدمج الفردية' : 'תוכניות שילוב אישיות'}
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {integrationPlans.map((plan) => (
                                 <div key={plan.id} className="bg-gray-50 border border-gray-200 rounded-xl p-5 shadow-sm hover:border-primary/20 transition-all flex flex-col justify-between">
                                     <div>
                                         <h4 className="font-bold text-lg text-gray-800">{plan.studentName} {plan.studentFamilyName}</h4>
-                                        <p className="text-gray-500 text-sm mt-1">هوية: {plan.studentId || '---'} | الصف: {plan.grade || '---'}</p>
+                                        <p className="text-gray-500 text-sm mt-1">{language === 'ar' ? 'هوية' : 'ת"ז'}: {plan.studentId || '---'} | {t('grade')}: {plan.grade || '---'}</p>
                                     </div>
                                     <button
                                         onClick={() => openIntegrationModal(plan)}
                                         className="mt-4 w-full px-3 py-2 bg-primary text-white rounded-lg text-sm font-bold hover:bg-primary-dark transition-colors"
                                     >
-                                        عرض تفاصيل الخطة
+                                        {language === 'ar' ? 'عرض تفاصيل الخطة' : 'הצג פרטי תוכנית'}
                                     </button>
                                 </div>
                             ))}
@@ -420,31 +422,31 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
                     <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
                         <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                            <h3 className="text-xl font-bold text-gray-800">اكتب ملاحظاتك للتعديل</h3>
+                            <h3 className="text-xl font-bold text-gray-800">{language === 'ar' ? 'اكتب ملاحظاتك للتعديل' : 'כתוב את הערותיך לתיקון'}</h3>
                             <button onClick={() => setShowFeedbackModal(false)} className="text-gray-400 hover:text-gray-600">✕</button>
                         </div>
                         <div className="p-6">
                             <textarea
                                 className="w-full h-40 p-4 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all resize-none font-medium"
-                                placeholder="اكتب بالتفصيل ما يجب تعديله على الخطة..."
+                                placeholder={t('write_feedback_placeholder')}
                                 value={feedback}
                                 onChange={(e) => setFeedback(e.target.value)}
                             ></textarea>
-                            <p className="text-gray-500 text-sm mt-3">سيتم إرسال هذه الملاحظات للمركز وتغيير حالة الخطة إلى "مطلوب تعديلات".</p>
+                            <p className="text-gray-500 text-sm mt-3">{t('feedback_warning')}</p>
                         </div>
                         <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50">
                             <button
                                 onClick={() => setShowFeedbackModal(false)}
                                 className="px-6 py-2 rounded-xl font-bold text-gray-600 hover:bg-gray-200 transition-colors"
                             >
-                                إلغاء
+                                {t('cancel')}
                             </button>
                             <button
                                 onClick={handleRequestChanges}
                                 disabled={actionLoading}
                                 className="px-6 py-2 rounded-xl font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-200 transition-transform hover:-translate-y-1"
                             >
-                                إرسال الملاحظات
+                                {language === 'ar' ? 'إرسال الملاحظات' : 'שלח הערות'}
                             </button>
                         </div>
                     </div>
@@ -455,11 +457,23 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                 <AIAssistant
                     onClose={() => setShowAI(false)}
                     context={{ planData, profile, teachingStaff, goals, schoolProfileTable, bookList }}
-                    pageTitle="مساعد مراجعة الخطط"
+                    pageTitle={t('plan_review_assistant')}
                     suggestions={[
-                        { label: 'تقييم مهني', prompt: 'قم بتقييم هذه الخطة مهنياً. هل الأهداف طموحة وواقعية؟ هل هناك فجوات في طاقم التدريس؟', icon: '🔍' },
-                        { label: 'اقتراح ملاحظات', prompt: 'اقترح ملاحظات بناءة للمركز لتحسين هذه الخطة.', icon: '✍️' },
-                        { label: 'تحليل البروفايل', prompt: 'حلل البروفايل المدرسي واذكر أهم التحديات التي تواجه الصفوف بناءً على أعداد الطلاب والمتعثرين.', icon: '📊' }
+                        { 
+                            label: t('professional_evaluation'), 
+                            prompt: language === 'ar' ? 'قم بتقييم هذه الخطة مهنياً. هل الأهداف طموحة وواقعية؟ هل هناك فجوات في طاقم التدريس؟' : 'הערך תוכנית זו באופן מקצועי. האם היעדים שאפתניים ומציאותיים? האם ישנם פערים בצוות ההוראה?', 
+                            icon: '🔍' 
+                        },
+                        { 
+                            label: t('suggest_feedback'), 
+                            prompt: language === 'ar' ? 'اقترح ملاحظات بناءة للمركز لتحسين هذه الخطة.' : 'הצע הערות בונות לרכז לשיפור תוכנית זו.', 
+                            icon: '✍️' 
+                        },
+                        { 
+                            label: t('profile_analysis'), 
+                            prompt: language === 'ar' ? 'حلل البروفايل المدرسي واذكر أهم التحديات التي تواجه الصفوف بناءً على أعداد الطلاب والمتعثرين.' : 'נתח את הפרופיל הבית ספרי וציין את האתגרים המרכזיים העומדים בפני הכיתות בהתבסס על מספר התלמידים והמתקשים.', 
+                            icon: '📊' 
+                        }
                     ]}
                 />
             )}
@@ -467,92 +481,98 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
                     <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
                         <div className="p-6 border-b flex justify-between items-center bg-gray-50">
-                            <h3 className="text-2xl font-black text-gray-800">خطة دمج شخصية (הورאה פרטנית) - عرض فقط</h3>
+                            <h3 className="text-2xl font-black text-gray-800">{t('personal_intervention_view_only')}</h3>
                             <button onClick={() => setShowIntegrationModal(false)} className="text-gray-500 hover:text-red-500 text-2xl font-bold">✕</button>
                         </div>
 
                         <div className="p-8 overflow-y-auto custom-scrollbar text-right" dir="rtl">
                             {/* Student Details */}
-                            <h4 className="font-bold text-lg border-b pb-2 mb-4 text-primary">👤 معلومات الطالب</h4>
+                            <h4 className="font-bold text-lg border-b pb-2 mb-4 text-primary">👤 {t('student_info')}</h4>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                                 <div>
-                                    <span className="block text-xs text-gray-500 mb-1">اسم الطالب</span>
+                                    <span className="block text-xs text-gray-500 mb-1">{t('student_name_label')}</span>
                                     <div className="p-2 bg-gray-50 rounded border">{currentIntegrationPlan.studentName || '---'}</div>
                                 </div>
                                 <div>
-                                    <span className="block text-xs text-gray-500 mb-1">اسم العائلة</span>
+                                    <span className="block text-xs text-gray-500 mb-1">{t('family_name_label')}</span>
                                     <div className="p-2 bg-gray-50 rounded border">{currentIntegrationPlan.studentFamilyName || '---'}</div>
                                 </div>
                                 <div>
-                                    <span className="block text-xs text-gray-500 mb-1">رقم الهوية</span>
+                                    <span className="block text-xs text-gray-500 mb-1">{t('id_number_label')}</span>
                                     <div className="p-2 bg-gray-50 rounded border">{currentIntegrationPlan.studentId || '---'}</div>
                                 </div>
                                 <div>
-                                    <span className="block text-xs text-gray-500 mb-1">تاريخ الميلاد</span>
+                                    <span className="block text-xs text-gray-500 mb-1">{t('dob_label')}</span>
                                     <div className="p-2 bg-gray-50 rounded border">{currentIntegrationPlan.dateOfBirth || '---'}</div>
                                 </div>
                                 <div>
-                                    <span className="block text-xs text-gray-500 mb-1">الصف</span>
+                                    <span className="block text-xs text-gray-500 mb-1">{t('grade')}</span>
                                     <div className="p-2 bg-gray-50 rounded border">{currentIntegrationPlan.grade || '---'}</div>
                                 </div>
                                 <div>
-                                    <span className="block text-xs text-gray-500 mb-1">العنوان</span>
+                                    <span className="block text-xs text-gray-500 mb-1">{t('address_label')}</span>
                                     <div className="p-2 bg-gray-50 rounded border">{currentIntegrationPlan.address || '---'}</div>
                                 </div>
                                 <div>
-                                    <span className="block text-xs text-gray-500 mb-1">البلدية</span>
+                                    <span className="block text-xs text-gray-500 mb-1">{t('municipality_label')}</span>
                                     <div className="p-2 bg-gray-50 rounded border">{currentIntegrationPlan.studentLocality || '---'}</div>
                                 </div>
                                 <div>
-                                    <span className="block text-xs text-gray-500 mb-1">الهاتف</span>
+                                    <span className="block text-xs text-gray-500 mb-1">{t('phone')}</span>
                                     <div className="p-2 bg-gray-50 rounded border">{currentIntegrationPlan.phone || '---'}</div>
                                 </div>
                             </div>
 
                             {/* Disabilities */}
-                            <h4 className="font-bold text-lg border-b pb-2 mb-4 text-primary">🩺 التشخيص / وصف الأداء</h4>
+                            <h4 className="font-bold text-lg border-b pb-2 mb-4 text-primary">🩺 {t('diagnosis_performance')}</h4>
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
                                 <label className="flex items-center gap-2">
                                     <input type="checkbox" checked={currentIntegrationPlan.disabilities?.borderlineIntellect || false} readOnly className="w-5 h-5 pointer-events-none" />
-                                    <span>ذكاء حدودي</span>
+                                    <span>{t('borderline_intelligence')}</span>
                                 </label>
                                 <label className="flex items-center gap-2">
                                     <input type="checkbox" checked={currentIntegrationPlan.disabilities?.behavioralEmotional || false} readOnly className="w-5 h-5 pointer-events-none" />
-                                    <span>اضطرابات سلوكية وعاطفية</span>
+                                    <span>{t('behavioral_emotional')}</span>
                                 </label>
                                 <label className="flex items-center gap-2">
                                     <input type="checkbox" checked={currentIntegrationPlan.disabilities?.learningDisabilitiesADHD || false} readOnly className="w-5 h-5 pointer-events-none" />
-                                    <span>صعوبات تعلم / ADHD</span>
+                                    <span>{t('learning_difficulties_adhd')}</span>
                                 </label>
                                 <label className="flex items-center gap-2">
                                     <input type="checkbox" checked={currentIntegrationPlan.disabilities?.developmentalDelayLanguage || false} readOnly className="w-5 h-5 pointer-events-none" />
-                                    <span>تأخر لغوي</span>
+                                    <span>{t('language_delay')}</span>
                                 </label>
                                 <label className="flex items-center gap-2">
                                     <input type="checkbox" checked={currentIntegrationPlan.disabilities?.developmentalDelayFunctional || false} readOnly className="w-5 h-5 pointer-events-none" />
-                                    <span>تأخر وظيفي</span>
+                                    <span>{t('functional_delay')}</span>
                                 </label>
                                 <label className="flex items-center gap-2">
                                     <input type="checkbox" checked={currentIntegrationPlan.disabilities?.diagnosisProcess || false} readOnly className="w-5 h-5 pointer-events-none" />
-                                    <span>في مرحلة التشخيص</span>
+                                    <span>{t('under_diagnosis')}</span>
                                 </label>
                             </div>
 
                             {/* Domains strengths & focus */}
-                            <h4 className="font-bold text-lg border-b pb-2 mb-4 text-primary">🧠 جوانب القوة والتركيز حسب المجالات</h4>
+                            <h4 className="font-bold text-lg border-b pb-2 mb-4 text-primary">🧠 {t('strengths_focus_areas')}</h4>
                             <div className="space-y-4 mb-8">
                                 {Object.entries(currentIntegrationPlan.domains || {}).map(([key, domain]: any) => {
-                                    const labels: Record<string, string> = { cognitive: 'المجال الإدراكي', academic: 'المجال الأكاديمي/التعليمي', social: 'المجال الاجتماعي', emotional: 'المجال العاطفي', motor: 'المجال الحركي/الحسي' };
+                                    const labels: Record<string, string> = { 
+                                        cognitive: t('cognitive_domain'), 
+                                        academic: t('academic_domain'), 
+                                        social: t('social_domain'), 
+                                        emotional: t('emotional_domain'), 
+                                        motor: t('motor_domain') 
+                                    };
                                     return (
                                         <div key={key} className="border border-gray-200 p-4 rounded-xl bg-gray-50">
                                             <h5 className="font-bold text-md text-gray-800 mb-2">{labels[key] || key}</h5>
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <span className="block text-xs text-gray-500 mb-1">نقاط القوة</span>
+                                                    <span className="block text-xs text-gray-500 mb-1">{t('strengths')}</span>
                                                     <div className="p-2 bg-white rounded border min-h-[50px] whitespace-pre-wrap">{domain.strengths || '---'}</div>
                                                 </div>
                                                 <div>
-                                                    <span className="block text-xs text-gray-500 mb-1">نقاط للتركيز والعمل</span>
+                                                    <span className="block text-xs text-gray-500 mb-1">{t('focus_areas')}</span>
                                                     <div className="p-2 bg-white rounded border min-h-[50px] whitespace-pre-wrap">{domain.focus || '---'}</div>
                                                 </div>
                                             </div>
@@ -562,22 +582,27 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                             </div>
 
                             {/* Domain Plans Table */}
-                            <h4 className="font-bold text-lg border-b pb-2 mb-4 text-primary">📅 الخطة العلاجية للمجالات المختارة</h4>
+                            <h4 className="font-bold text-lg border-b pb-2 mb-4 text-primary">📅 {t('treatment_plan_areas')}</h4>
                             <div className="overflow-x-auto mb-8">
                                 <table className="w-full border-collapse">
                                     <thead>
                                         <tr className="bg-gray-100">
-                                            <th className="border p-2 w-32">المجال</th>
-                                            <th className="border p-2">الهدف العام</th>
-                                            <th className="border p-2">الهدف العملي</th>
-                                            <th className="border p-2">طريقة التدخل والوسائل</th>
-                                            <th className="border p-2 w-32">المدى الزمني</th>
-                                            <th className="border p-2">معايير التقييم</th>
+                                            <th className="border p-2 w-32">{language === 'ar' ? 'المجال' : 'תחום'}</th>
+                                            <th className="border p-2">{t('general_goal')}</th>
+                                            <th className="border p-2">{t('practical_goal')}</th>
+                                            <th className="border p-2">{t('intervention_method')}</th>
+                                            <th className="border p-2 w-32">{t('duration')}</th>
+                                            <th className="border p-2">{t('evaluation_criteria')}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {Object.entries(currentIntegrationPlan.domainPlans || {}).map(([domainName, plan]: any) => {
-                                            const labels: Record<string, string> = { academic: 'تعليمي', social: 'اجتماعي', emotional: 'عاطفي', behavioral: 'سلوكي' };
+                                            const labels: Record<string, string> = { 
+                                                academic: language === 'ar' ? 'تعليمي' : 'לימודי', 
+                                                social: language === 'ar' ? 'اجتماعي' : 'חברתי', 
+                                                emotional: language === 'ar' ? 'عاطفي' : 'רגשי',
+                                                behavioral: language === 'ar' ? 'سلوكي' : 'התנהגותי'
+                                            };
                                             return (
                                                 <tr key={domainName}>
                                                     <td className="border p-2 bg-gray-50 font-bold text-center">{labels[domainName] || domainName}</td>
@@ -596,7 +621,7 @@ export default function ReviewPlanClient({ year }: { year: string }) {
 
                         <div className="p-6 border-t bg-gray-50 flex justify-end">
                             <button onClick={() => setShowIntegrationModal(false)} className="btn bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-bold shadow-md">
-                                إغلاق
+                                {t('close')}
                             </button>
                         </div>
                     </div>

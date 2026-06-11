@@ -13,7 +13,7 @@ import { exportPlanToWord } from '@/lib/wordExport';
 
 export default function EditPlanClient({ year }: { year: string }) {
     const router = useRouter();
-    const { t } = useTranslation();
+    const { t, language } = useTranslation();
     const academicYear = parseInt(year);
 
     const [loading, setLoading] = useState(true);
@@ -669,7 +669,7 @@ export default function EditPlanClient({ year }: { year: string }) {
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <line x1="19" x2="5" y1="12" y2="12" /><polyline points="12 19 5 12 12 5" />
                         </svg>
-                        العودة
+                        {t('back')}
                     </button>
 
                     <div className="flex items-center gap-4">
@@ -679,8 +679,8 @@ export default function EditPlanClient({ year }: { year: string }) {
                             </svg>
                         </div>
                         <div>
-                            <h1 className="mb-1">خطة العمل السنوية {year}</h1>
-                            <p className="text-gray-500 text-lg">التخطيط المبني على التقويم الدراسي</p>
+                            <h1 className="mb-1">{language === 'ar' ? 'خطة العمل السنوية' : 'תכנית עבודה שנתית'} {year}</h1>
+                            <p className="text-gray-500 text-lg">{language === 'ar' ? 'التخطيط المبني على التقويم الدراسي' : 'תכנון מבוסס על לוח השנה הבית ספרי'}</p>
                         </div>
                     </div>
                 </div>
@@ -706,7 +706,7 @@ export default function EditPlanClient({ year }: { year: string }) {
                             <polyline points="7 10 12 15 17 10"></polyline>
                             <line x1="12" x2="12" y1="15" y2="3"></line>
                         </svg>
-                        استيراد Excel
+                        {t('import_excel_file')}
                     </label>
 
                     <button
@@ -719,7 +719,7 @@ export default function EditPlanClient({ year }: { year: string }) {
                         ) : (
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 2L11 13"></path><path d="M22 2L15 22L11 13L2 9L22 2Z"></path></svg>
                         )}
-                        إرسال للمدير
+                        {t('send_to_principal')}
                     </button>
 
                     <button
@@ -728,7 +728,7 @@ export default function EditPlanClient({ year }: { year: string }) {
                         className="btn bg-blue-600 hover:bg-blue-700 text-white text-lg px-6 py-3 flex items-center gap-2 shadow-lg transition-transform hover:-translate-y-1"
                     >
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                        حفظ مسودة
+                        {t('save_draft')}
                     </button>
 
                     <button
@@ -740,7 +740,7 @@ export default function EditPlanClient({ year }: { year: string }) {
                             <polyline points="7 10 12 15 17 10" />
                             <line x1="12" y1="15" x2="12" y2="3" />
                         </svg>
-                        تنزيل PDF
+                        {t('download_pdf')}
                     </button>
 
                     {/* Hidden file input for Excel import */}
@@ -762,7 +762,7 @@ export default function EditPlanClient({ year }: { year: string }) {
                             <polyline points="17 8 12 3 7 8" />
                             <line x1="12" y1="3" x2="12" y2="15" />
                         </svg>
-                        استيراد Excel
+                        {t('import_excel_file')}
                     </button>
 
                     {/* Excel Export Button */}
@@ -775,7 +775,7 @@ export default function EditPlanClient({ year }: { year: string }) {
                             <polyline points="7 10 12 15 17 10" />
                             <line x1="12" y1="15" x2="12" y2="3" />
                         </svg>
-                        تصدير Excel
+                        {t('export_excel')}
                     </button>
 
                     {/* Word Export Button */}
@@ -799,14 +799,14 @@ export default function EditPlanClient({ year }: { year: string }) {
                             <polyline points="7 10 12 15 17 10" />
                             <line x1="12" y1="15" x2="12" y2="3" />
                         </svg>
-                        تنزيل Word
+                        {t('download_word')}
                     </button>
                 </div>
             </div>
 
             {/* Print Title (only shows in PDF) */}
             <div className="hidden print:block mb-8 text-center">
-                <h1 className="text-4xl font-black mb-2">خطة العمل السنوية {year}</h1>
+                <h1 className="text-4xl font-black mb-2">{language === 'ar' ? 'خطة العمل السنوية' : 'תכנית עבודה שנתית'} {year}</h1>
                 <p className="text-xl text-gray-600">{profile.name} - {profile.subject}</p>
             </div>
 
@@ -821,14 +821,14 @@ export default function EditPlanClient({ year }: { year: string }) {
                         </svg>
                     </div>
                     <div>
-                        <h2 className="text-3xl font-black">ملف المركز والمادة</h2>
-                        <p className="text-gray-600">المعلومات الأساسية والمعلمون</p>
+                        <h2 className="text-3xl font-black">{language === 'ar' ? 'ملف المركز والمادة' : 'פרופיל רכז ומקצוע'}</h2>
+                        <p className="text-gray-600">{language === 'ar' ? 'المعلومات الأساسية والمعلمون' : 'מידע בסיסי ומורים'}</p>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-6 print:gap-4">
                     <div>
-                        <label className="block text-sm font-bold mb-3 text-gray-700">اسم المركز</label>
+                        <label className="block text-sm font-bold mb-3 text-gray-700">{language === 'ar' ? 'اسم المركز' : 'שם הרכז'}</label>
                         <input
                             type="text"
                             value={profile.name}
@@ -837,7 +837,7 @@ export default function EditPlanClient({ year }: { year: string }) {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-bold mb-3 text-gray-700">المادة الدراسية</label>
+                        <label className="block text-sm font-bold mb-3 text-gray-700">{t('subject_label')}</label>
                         <input
                             type="text"
                             value={profile.subject}
@@ -862,8 +862,8 @@ export default function EditPlanClient({ year }: { year: string }) {
                             </svg>
                         </div>
                         <div>
-                            <h2 className="text-2xl font-black">طاقم التدريس</h2>
-                            <p className="text-gray-600 text-sm">تفاصيل المعلمين في الطاقم</p>
+                            <h2 className="text-2xl font-black">{t('teaching_staff')}</h2>
+                            <p className="text-gray-600 text-sm">{language === 'ar' ? 'تفاصيل المعلمين في الطاقم' : 'פרטי המורים בצוות'}</p>
                         </div>
                     </div>
                     <button
@@ -885,7 +885,7 @@ export default function EditPlanClient({ year }: { year: string }) {
                             <line x1="12" y1="5" x2="12" y2="19"></line>
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                         </svg>
-                        إضافة معلم
+                        {language === 'ar' ? 'إضافة معلم' : 'הוסף מורה'}
                     </button>
                 </div>
 
@@ -1412,16 +1412,16 @@ export default function EditPlanClient({ year }: { year: string }) {
                                                             task.status === 'partial' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
                                                                 'bg-gray-50 text-gray-500 border-gray-200'}`}
                                                 >
-                                                    <option value="not-started">טרם בוצע</option>
-                                                    <option value="partial">חלקית</option>
-                                                    <option value="completed">בוצע</option>
+                                                    <option value="not-started">{t('not_started')}</option>
+                                                    <option value="partial">{t('partial')}</option>
+                                                    <option value="completed">{t('completed')}</option>
                                                 </select>
                                             </td>
                                             <td className="p-2 align-top text-center print:hidden pt-4">
                                                 <button
                                                     onClick={() => deleteTask(goal.id, task.id)}
                                                     className="text-gray-400 hover:text-red-600 transition-colors"
-                                                    title="حذف"
+                                                    title={t('delete')}
                                                 >
                                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                                                 </button>
@@ -1437,7 +1437,7 @@ export default function EditPlanClient({ year }: { year: string }) {
                                                 className="text-primary hover:text-primary-dark font-bold text-sm flex items-center justify-center gap-2 mx-auto"
                                             >
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                                                إضافة مهمة جديدة لهذا الهدف
+                                                {t('add_new_task')}
                                             </button>
                                         </td>
                                     </tr>
@@ -1454,7 +1454,7 @@ export default function EditPlanClient({ year }: { year: string }) {
                     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
                         <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
                             <div className="p-6 border-b flex justify-between items-center bg-gray-50">
-                                <h3 className="text-2xl font-black">خطة دمج شخصية (הוראה פרטנית)</h3>
+                                <h3 className="text-2xl font-black">{t('personal_intervention_plan_title')} (הוראה פרטנית)</h3>
                                 <button onClick={() => setShowIntegrationModal(false)} className="text-gray-500 hover:text-red-500">
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                                 </button>
@@ -1464,31 +1464,31 @@ export default function EditPlanClient({ year }: { year: string }) {
                                 {/* Student Details */}
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                                     <div className="col-span-1">
-                                        <label className="block text-sm font-bold mb-1">اسم الطالب</label>
+                                        <label className="block text-sm font-bold mb-1">{t('student_name')}</label>
                                         <input type="text" className="w-full p-2 border rounded" value={currentIntegrationPlan.studentName} onChange={e => setCurrentIntegrationPlan({ ...currentIntegrationPlan, studentName: e.target.value })} />
                                     </div>
                                     <div className="col-span-1">
-                                        <label className="block text-sm font-bold mb-1">اسم العائلة</label>
+                                        <label className="block text-sm font-bold mb-1">{t('family_name_label')}</label>
                                         <input type="text" className="w-full p-2 border rounded" value={currentIntegrationPlan.studentFamilyName} onChange={e => setCurrentIntegrationPlan({ ...currentIntegrationPlan, studentFamilyName: e.target.value })} />
                                     </div>
                                     <div className="col-span-1">
-                                        <label className="block text-sm font-bold mb-1">رقم الهوية</label>
+                                        <label className="block text-sm font-bold mb-1">{t('id_number_label')}</label>
                                         <input type="text" className="w-full p-2 border rounded" value={currentIntegrationPlan.studentId} onChange={e => setCurrentIntegrationPlan({ ...currentIntegrationPlan, studentId: e.target.value })} />
                                     </div>
                                     <div className="col-span-1">
-                                        <label className="block text-sm font-bold mb-1">الصف</label>
+                                        <label className="block text-sm font-bold mb-1">{t('grade')}</label>
                                         <input type="text" className="w-full p-2 border rounded" value={currentIntegrationPlan.grade} onChange={e => setCurrentIntegrationPlan({ ...currentIntegrationPlan, grade: e.target.value })} />
                                     </div>
                                     <div className="col-span-1">
-                                        <label className="block text-sm font-bold mb-1">تاريخ الميلاد</label>
+                                        <label className="block text-sm font-bold mb-1">{t('dob_label')}</label>
                                         <input type="date" className="w-full p-2 border rounded" value={currentIntegrationPlan.dateOfBirth} onChange={e => setCurrentIntegrationPlan({ ...currentIntegrationPlan, dateOfBirth: e.target.value })} />
                                     </div>
                                     <div className="col-span-1">
-                                        <label className="block text-sm font-bold mb-1">البلد</label>
+                                        <label className="block text-sm font-bold mb-1">{t('municipality_label')}</label>
                                         <input type="text" className="w-full p-2 border rounded" value={currentIntegrationPlan.studentLocality} onChange={e => setCurrentIntegrationPlan({ ...currentIntegrationPlan, studentLocality: e.target.value })} />
                                     </div>
                                     <div className="col-span-2">
-                                        <label className="block text-sm font-bold mb-1">عنوان السكن</label>
+                                        <label className="block text-sm font-bold mb-1">{t('address_label')}</label>
                                         <input type="text" className="w-full p-2 border rounded" value={currentIntegrationPlan.address} onChange={e => setCurrentIntegrationPlan({ ...currentIntegrationPlan, address: e.target.value })} />
                                     </div>
                                 </div>
@@ -1496,42 +1496,48 @@ export default function EditPlanClient({ year }: { year: string }) {
                                 <hr className="my-6" />
 
                                 {/* Characterization */}
-                                <h4 className="font-bold text-lg mb-4">وصف الأداء (ضع إشارة)</h4>
+                                <h4 className="font-bold text-lg mb-4">{t('performance_description')}</h4>
                                 <div className="grid grid-cols-2 gap-4 mb-8">
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input type="checkbox" checked={currentIntegrationPlan.disabilities.borderlineIntellect} onChange={e => setCurrentIntegrationPlan({ ...currentIntegrationPlan, disabilities: { ...currentIntegrationPlan.disabilities, borderlineIntellect: e.target.checked } })} className="w-5 h-5" />
-                                        <span>ذكاء حدودي (אינטיליגנציה גבולית)</span>
+                                        <span>{t('borderline_intelligence')} (אינטיליגנציה גבולית)</span>
                                     </label>
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input type="checkbox" checked={currentIntegrationPlan.disabilities.behavioralEmotional} onChange={e => setCurrentIntegrationPlan({ ...currentIntegrationPlan, disabilities: { ...currentIntegrationPlan.disabilities, behavioralEmotional: e.target.checked } })} className="w-5 h-5" />
-                                        <span>اضطرابات سلوكية/عاطفية (הפרעות התנהגות)</span>
+                                        <span>{t('behavioral_emotional')} (הפרעות התנהגות)</span>
                                     </label>
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input type="checkbox" checked={currentIntegrationPlan.disabilities.learningDisabilitiesADHD} onChange={e => setCurrentIntegrationPlan({ ...currentIntegrationPlan, disabilities: { ...currentIntegrationPlan.disabilities, learningDisabilitiesADHD: e.target.checked } })} className="w-5 h-5" />
-                                        <span>صعوبات تعلم / ADHD</span>
+                                        <span>{t('learning_difficulties_adhd')}</span>
                                     </label>
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input type="checkbox" checked={currentIntegrationPlan.disabilities.developmentalDelayLanguage} onChange={e => setCurrentIntegrationPlan({ ...currentIntegrationPlan, disabilities: { ...currentIntegrationPlan.disabilities, developmentalDelayLanguage: e.target.checked } })} className="w-5 h-5" />
-                                        <span>تأخر في التطور اللغوي (עיכוב שפתי)</span>
+                                        <span>{t('language_delay')} (עיכוב שפתי)</span>
                                     </label>
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input type="checkbox" checked={currentIntegrationPlan.disabilities.developmentalDelayFunctional} onChange={e => setCurrentIntegrationPlan({ ...currentIntegrationPlan, disabilities: { ...currentIntegrationPlan.disabilities, developmentalDelayFunctional: e.target.checked } })} className="w-5 h-5" />
-                                        <span>تأخر في التطور الوظيفي (עיכוב תפקודי)</span>
+                                        <span>{t('functional_delay')} (עיכוב תפקודי)</span>
                                     </label>
                                 </div>
 
                                 <hr className="my-6" />
 
                                 {/* Domain Analysis */}
-                                <h4 className="font-bold text-lg mb-4">تحليل المجالات (نقاط القوة والضعف)</h4>
+                                <h4 className="font-bold text-lg mb-4">{language === 'ar' ? 'تحليل المجالات (نقاط القوة والضعف)' : 'ניתוח תחומים (חוזקות ומוקדים לעבודה)'}</h4>
                                 {Object.entries(currentIntegrationPlan.domains).map(([key, domain]) => {
-                                    const labels: Record<string, string> = { cognitive: 'المجال الذهني', academic: 'المجال التعليمي/اللغوي', social: 'المجال الاجتماعي', emotional: 'المجال العاطفي', motor: 'المجال الحسي/الحركي' };
+                                    const labels: Record<string, string> = { 
+                                        cognitive: language === 'ar' ? 'المجال الإدراكي' : 'תחום קוגניטיבי', 
+                                        academic: language === 'ar' ? 'المجال الأكاديمي/التعليمي' : 'תחום לימודי/שפתי', 
+                                        social: language === 'ar' ? 'المجال الاجتماعي' : 'תחום חברתי', 
+                                        emotional: language === 'ar' ? 'المجال العاطفي' : 'תחום רגשי', 
+                                        motor: language === 'ar' ? 'المجال الحركي/الحسي' : 'תחום מוטורי/תחושתי'
+                                    };
                                     return (
                                         <div key={key} className="mb-4">
                                             <h5 className="font-bold text-primary mb-2">{labels[key]}</h5>
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="text-xs text-gray-500">نقاط القوة</label>
+                                                    <label className="text-xs text-gray-500">{t('strengths')}</label>
                                                     <textarea
                                                         className="w-full p-2 border rounded resize-none h-20"
                                                         value={domain.strengths}
@@ -1545,7 +1551,7 @@ export default function EditPlanClient({ year }: { year: string }) {
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="text-xs text-gray-500">نقاط الضعف (التركيز)</label>
+                                                    <label className="text-xs text-gray-500">{t('focus_areas')}</label>
                                                     <textarea
                                                         className="w-full p-2 border rounded resize-none h-20"
                                                         value={domain.focus}
@@ -1566,22 +1572,27 @@ export default function EditPlanClient({ year }: { year: string }) {
                                 <hr className="my-6" />
 
                                 {/* Plan Goals per Domain */}
-                                <h4 className="font-bold text-lg mb-4">الخطة العلاجية حسب المجالات</h4>
+                                <h4 className="font-bold text-lg mb-4">{t('treatment_plan_by_areas')}</h4>
                                 <div className="overflow-x-auto">
                                     <table className="w-full border collapse text-sm">
                                         <thead>
                                             <tr className="bg-gray-100">
-                                                <th className="border p-2 w-24">المجال</th>
-                                                <th className="border p-2">الهدف العام</th>
-                                                <th className="border p-2">الأهداف العملية</th>
-                                                <th className="border p-2">الطريقة/الوسائل</th>
-                                                <th className="border p-2 w-24">المدة الزمنية</th>
-                                                <th className="border p-2">التقييم</th>
+                                                <th className="border p-2 w-24">{language === 'ar' ? 'المجال' : 'תחום'}</th>
+                                                <th className="border p-2">{t('general_goal')}</th>
+                                                <th className="border p-2">{t('practical_goals')}</th>
+                                                <th className="border p-2">{t('method_means')}</th>
+                                                <th className="border p-2 w-24">{t('duration')}</th>
+                                                <th className="border p-2">{t('evaluation')}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {Object.entries(currentIntegrationPlan.domainPlans).map(([domainName, plan]) => {
-                                                const labels: Record<string, string> = { academic: 'تعليمي', social: 'اجتماعي', emotional: 'عاطفي', behavioral: 'سلوكي' };
+                                                const labels: Record<string, string> = { 
+                                                    academic: language === 'ar' ? 'تعليمي' : 'לימודי', 
+                                                    social: language === 'ar' ? 'اجتماعي' : 'חברתי', 
+                                                    emotional: language === 'ar' ? 'عاطفي' : 'רגשי', 
+                                                    behavioral: language === 'ar' ? 'سلوكي' : 'התנהגותי'
+                                                };
                                                 return (
                                                     <tr key={domainName}>
                                                         <td className="border p-2 font-bold bg-gray-50">{labels[domainName]}</td>
