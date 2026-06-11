@@ -18,6 +18,9 @@ export default function EditPlanClient({ year }: { year: string }) {
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [comments, setComments] = useState<Record<string, string>>({});
+    const [status, setStatus] = useState<string>('draft');
+    const [feedback, setFeedback] = useState<string>('');
 
     const [profile, setProfile] = useState({
         name: 'مركز الرياضيات',
@@ -225,6 +228,9 @@ export default function EditPlanClient({ year }: { year: string }) {
                     if (data.yearlyGoals) setYearlyGoals(data.yearlyGoals);
                     if (data.goals) setGoals(data.goals);
                     if (data.integrationPlans) setIntegrationPlans(data.integrationPlans);
+                    if (data.comments) setComments(data.comments);
+                    if (data.status) setStatus(data.status);
+                    if (data.feedback) setFeedback(data.feedback);
                 } else {
                     // Pre-fill profile with user data if new plan
                     setProfile(prev => ({
@@ -253,6 +259,21 @@ export default function EditPlanClient({ year }: { year: string }) {
             ]
         }
     ]);
+
+    const renderSectionComment = (sectionKey: string) => {
+        if (status !== 'changes_requested' || !comments[sectionKey]) return null;
+        return (
+            <div className="mb-6 bg-amber-50 border-2 border-amber-300 rounded-xl p-4 text-amber-900 flex items-start gap-3 print:hidden animate-fade-in" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                <span className="text-xl">⚠️</span>
+                <div className="flex-1">
+                    <strong className="block text-amber-800 font-bold mb-1">
+                        {language === 'ar' ? 'ملاحظة المدير للتعديل:' : 'הערת המנהל לתיקון:'}
+                    </strong>
+                    <p className="text-sm font-medium whitespace-pre-wrap">{comments[sectionKey]}</p>
+                </div>
+            </div>
+        );
+    };
 
 
 
@@ -810,6 +831,21 @@ export default function EditPlanClient({ year }: { year: string }) {
                 <p className="text-xl text-gray-600">{profile.name} - {profile.subject}</p>
             </div>
 
+            {status === 'changes_requested' && feedback && (
+                <div className="mb-8 bg-red-50 border-2 border-red-200 rounded-2xl p-6 text-red-900 shadow-lg relative overflow-hidden print:hidden" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                    <div className="absolute top-0 left-0 w-full h-1.5 bg-red-500"></div>
+                    <div className="flex items-start gap-4">
+                        <span className="text-3xl">⚠️</span>
+                        <div className="flex-1">
+                            <h3 className="text-xl font-bold text-red-800 mb-2">
+                                {language === 'ar' ? 'ملاحظات المدير العامة للتعديل:' : 'הערות מנהל כלליות לתיקון:'}
+                            </h3>
+                            <p className="text-lg leading-relaxed font-semibold whitespace-pre-wrap">{feedback}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Profile Section */}
             <div className="glass-panel p-8 mb-8 relative overflow-hidden print:border print:border-gray-300">
                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[var(--primary)] to-[var(--primary-dark)] print:hidden"></div>
@@ -851,6 +887,7 @@ export default function EditPlanClient({ year }: { year: string }) {
 
             {/* Teaching Staff Table */}
             <div className="glass-panel p-8 mb-8 print:border print:border-gray-300">
+                {renderSectionComment('teachingStaff')}
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-4">
                         <div className="p-3 bg-blue-100 rounded-xl text-blue-600 print:hidden">
@@ -1023,6 +1060,7 @@ export default function EditPlanClient({ year }: { year: string }) {
 
             {/* School Profile Table (פרופיל בית ספרי) */}
             <div className="glass-panel p-8 mb-8 print:border print:border-gray-300">
+                {renderSectionComment('schoolProfileTable')}
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-black">פרופיל בית ספרי (School Profile)</h2>
                     <button
@@ -1145,6 +1183,7 @@ export default function EditPlanClient({ year }: { year: string }) {
 
             {/* Book List Table (רשימת הספרים) */}
             <div className="glass-panel p-8 mb-8 print:border print:border-gray-300">
+                {renderSectionComment('bookList')}
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-black">רשימת הספרים (Book List)</h2>
                     <button
@@ -1197,6 +1236,7 @@ export default function EditPlanClient({ year }: { year: string }) {
 
             {/* Integration Plans */}
             <div className="glass-panel p-8 mb-8 print:border print:border-gray-300">
+                {renderSectionComment('integrationPlans')}
                 <div className="flex items-center justify-between mb-6">
                     <div>
                         <h2 className="text-2xl font-black flex items-center gap-2">
@@ -1261,6 +1301,7 @@ export default function EditPlanClient({ year }: { year: string }) {
 
             {/* Annual Goals */}
             <div className="glass-panel p-8 mb-8 print:border print:border-gray-300">
+                {renderSectionComment('yearlyGoals')}
                 <h2 className="text-2xl font-black mb-4">{t('annual_goals')}</h2>
                 <textarea
                     value={yearlyGoals}
@@ -1283,6 +1324,7 @@ export default function EditPlanClient({ year }: { year: string }) {
                 <div className="space-y-8">
                     {goals.map(goal => (
                         <div key={goal.id} className="bg-white border-2 border-gray-100 rounded-xl overflow-hidden shadow-sm hover:border-primary/20 transition-all">
+                            {renderSectionComment('goal_' + goal.id)}
 
                             {/* Simple Table */}
                             <table className="w-full border-collapse">

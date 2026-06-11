@@ -43,6 +43,7 @@ export default function ReviewPlanClient({ year }: { year: string }) {
     // Feedback State
     const [showFeedbackModal, setShowFeedbackModal] = useState(false);
     const [feedback, setFeedback] = useState('');
+    const [comments, setComments] = useState<Record<string, string>>({});
     const [showAI, setShowAI] = useState(false);
 
     // Integration modal state
@@ -71,6 +72,7 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                     if (data.yearlyGoals) setYearlyGoals(data.yearlyGoals);
                     if (data.goals) setGoals(data.goals);
                     if (data.integrationPlans) setIntegrationPlans(data.integrationPlans);
+                    if (data.comments) setComments(data.comments);
                 }
             } catch (error) {
                 console.error("Error fetching plan:", error);
@@ -118,13 +120,26 @@ export default function ReviewPlanClient({ year }: { year: string }) {
     };
 
     const handleRequestChanges = async () => {
-        if (!feedback.trim()) return alert(language === 'ar' ? 'الرجاء كتابة ملاحظات التعديل' : 'נא לכתוב הערות לתיקון');
+        const hasSectionComments = Object.values(comments).some(c => c && c.trim());
+        let finalFeedback = feedback.trim();
+        
+        if (!finalFeedback && !hasSectionComments) {
+            return alert(language === 'ar' ? 'الرجاء كتابة ملاحظات التعديل أو إضافة تعليق على أحد البنود' : 'נא לכתוב הערות לתיקון או להוסיף הערה על אחד הסעיפים');
+        }
+
+        if (!finalFeedback && hasSectionComments) {
+            finalFeedback = language === 'ar' 
+                ? 'تمت إضافة ملاحظات محددة على بنود الخطة. يرجى مراجعة وتعديل البنود المعنية.' 
+                : 'נוספו הערות ספציפיות על סעיפי התוכנית. נא לעבור עליהן ולתקן בהתאם.';
+        }
+
         setActionLoading(true);
         try {
             const planId = `${year}_${userId}`;
             await updateDoc(doc(db, 'annualPlans', planId), {
                 status: 'changes_requested',
-                feedback: feedback,
+                feedback: finalFeedback,
+                comments: comments,
                 updatedAt: Date.now()
             });
 
@@ -134,11 +149,11 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                 senderName: language === 'ar' ? 'المدير' : 'מנהל',
                 senderRole: 'principal',
                 title: language === 'ar' ? 'مطلوب تعديلات على الخطة ⚠️' : 'נדרשים תיקונים בתכנית ⚠️',
-                message: language === 'ar' ? `المدير طلب تعديلات: ${feedback}` : `המנהל ביקש תיקונים: ${feedback}`,
+                message: language === 'ar' ? `المدير طلب تعديلات: ${finalFeedback}` : `המנהל ביקש תיקונים: ${finalFeedback}`,
                 recipientId: userId,
                 link: `/dashboard/planning/edit/${year}`,
                 status: 'changes_requested',
-                feedback: feedback
+                feedback: finalFeedback
             });
 
             alert(language === 'ar' ? '✅ تم إرسال الملاحظات للمركز' : '✅ ההערות נשלחו לרכז בהצלחה');
@@ -150,6 +165,33 @@ export default function ReviewPlanClient({ year }: { year: string }) {
         } finally {
             setActionLoading(false);
         }
+    };
+
+    const renderCommentBox = (sectionKey: string) => {
+        const isApproved = planData?.status === 'approved';
+        return (
+            <div className="mt-4 border-t border-gray-100 pt-4 print:hidden" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                {!isApproved ? (
+                    <div className="space-y-1">
+                        <label className="block text-sm font-bold text-amber-600">
+                            💬 {language === 'ar' ? 'ملاحظة المدير على هذا القسم (تعديل):' : 'הערת המנהל על סעיף זה (לתיקון):'}
+                        </label>
+                        <textarea
+                            className="w-full p-3 border-2 border-amber-100 rounded-xl focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 text-sm transition-all resize-none bg-amber-50/20"
+                            rows={2}
+                            placeholder={language === 'ar' ? 'اكتب ملاحظتك للتعديل هنا...' : 'כתוב את הערתך לתיקון כאן...'}
+                            value={comments[sectionKey] || ''}
+                            onChange={(e) => setComments(prev => ({ ...prev, [sectionKey]: e.target.value }))}
+                        />
+                    </div>
+                ) : comments[sectionKey] ? (
+                    <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-3 text-amber-900">
+                        <span className="block text-xs font-bold text-amber-700 mb-1">💬 {language === 'ar' ? 'ملاحظة المدير:' : 'הערת המנהל:'}</span>
+                        <p className="text-sm font-medium whitespace-pre-wrap">{comments[sectionKey]}</p>
+                    </div>
+                ) : null}
+            </div>
+        );
     };
 
     if (loading) return <div className="p-10 text-center">{t('loading_plan')}</div>;
@@ -259,6 +301,7 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                             </tbody>
                         </table>
                     </div>
+                    {renderCommentBox('teachingStaff')}
                 </div>
 
                 {/* 3. School Profile Table */}
@@ -296,6 +339,7 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                             </tbody>
                         </table>
                     </div>
+                    {renderCommentBox('schoolProfileTable')}
                 </div>
 
                 {/* 4. Book List */}
@@ -328,6 +372,7 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                                 </tbody>
                             </table>
                         </div>
+                        {renderCommentBox('bookList')}
                     </div>
                 )}
 
@@ -353,6 +398,7 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                                 </div>
                             ))}
                         </div>
+                        {renderCommentBox('integrationPlans')}
                     </div>
                 )}
 
@@ -363,6 +409,7 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                             🎯 {t('annual_goals')}
                         </h3>
                         <p className="text-gray-700 whitespace-pre-line text-lg leading-relaxed">{yearlyGoals}</p>
+                        {renderCommentBox('yearlyGoals')}
                     </div>
                 )}
 
@@ -410,6 +457,7 @@ export default function ReviewPlanClient({ year }: { year: string }) {
                                         </li>
                                     ))}
                                 </ul>
+                                {renderCommentBox('goal_' + goal.id)}
                             </div>
                         ))}
                     </div>
